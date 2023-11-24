@@ -108,7 +108,8 @@ class Database:
 
                             """
             )
-            films_data_including_rating = cur.fetchall()
+            # type behaviour is changed due to psycopg2.extras.DictCursor used in get_db_connection
+            films_data_including_rating: list[psycopg2.extras.DictRow] = cur.fetchall()  # type: ignore
             output = list()
 
             for film in films_data_including_rating:
