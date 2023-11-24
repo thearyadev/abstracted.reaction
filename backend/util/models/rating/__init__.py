@@ -1,10 +1,10 @@
 import dataclasses
-from uuid import UUID
+from util.models.uuid import RecordUUIDLike
 
 
 @dataclasses.dataclass
 class Rating:
-    uuid: str | None
+    uuid: RecordUUIDLike
     average: float
     story: int
     positions: int

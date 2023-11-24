@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from enum import Enum, auto
 from util.models.rating import Rating
+from util.models.uuid import RecordUUIDLike
 
 
 class FilmState(Enum):
@@ -13,7 +14,7 @@ class FilmState(Enum):
 
 @dataclasses.dataclass
 class FilmNoBytes:
-    uuid: str | None
+    uuid: RecordUUIDLike
     title: str
     date_added: datetime
     filename: str
