@@ -11,11 +11,12 @@ import contextlib
 from util.models.rating import Rating
 from util.models.film import FilmNoBytes
 import inspect
-from typing import Any, ContextManager, Tuple, Generator
+from typing import Any, ContextManager, Tuple, Generator, Literal
+from util.models.uuid import RecordUUIDLike
 
 
 def split_rating_and_record(
-    film_data: psycopg2.extras.DictRow,
+        film_data: psycopg2.extras.DictRow,
 ) -> tuple[Rating, dict[str, Any]]:
     """Extracts rating from a psycopg2.extras.DictRow"""
     film_data_as_dict = dict(film_data)
@@ -35,16 +36,16 @@ def split_rating_and_record(
 
 class Database:
     def __init__(
-        self,
-        db_name: str,
-        db_user: str,
-        db_password: str,
-        db_host: str,
-        db_port: str,
-        max_connections: int,
-        min_connections: int,
-        max_retries: int,
-        retry_interval: int,
+            self,
+            db_name: str,
+            db_user: str,
+            db_password: str,
+            db_host: str,
+            db_port: str,
+            max_connections: int,
+            min_connections: int,
+            max_retries: int,
+            retry_interval: int,
     ) -> None:
         self.db_name = db_name  # db connection credentials
         self.db_user = db_user
@@ -82,7 +83,7 @@ class Database:
 
     @contextlib.contextmanager
     def get_db_connection(
-        self,
+            self,
     ) -> Generator[
         Tuple[psycopg2.extensions.connection, psycopg2.extensions.cursor], None, None
     ]:
@@ -117,6 +118,30 @@ class Database:
                 output.append(FilmNoBytes(rating=rating, **film_data))
             return output
 
+    def get_single_film(self, uuid: RecordUUIDLike) -> FilmNoBytes:
+        """Returns a single film from the database"""
+        with self.get_db_connection() as (conn, cur):
+            cur.execute(
+                """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses, r.uuid AS r_uuid, r.*
+                    FROM public.film f
+                    JOIN public.rating r ON f.rating = r.uuid
+                    WHERE f.uuid = %s;
+                            """,
+                (uuid,),
+            )
+            # type behaviour is changed due to psycopg2.extras.DictCursor used in get_db_connection
+            film_data_including_rating: psycopg2.extras.DictRow = cur.fetchone()  # type: ignore
+            rating, film_data = split_rating_and_record(film_data_including_rating)
+            return FilmNoBytes(rating=rating, **film_data)
+
+    def update_film(self, new_film_data: FilmNoBytes) -> None:
+        """Will update all fields. If a FilmNoBytes object is received, the thumbnail and poster will not be altered.
+        This will also update the rating object."""
+        ...
+
+    def get_image(self, uuid: RecordUUIDLike, image_type: Literal['POSTER', 'THUMBNAIL']) -> bytes:
+        ...
+
 
 if __name__ == "__main__":
     import dotenv
@@ -136,4 +161,6 @@ if __name__ == "__main__":
         retry_interval=int(os.getenv("POSTGRES_RETRY_INTERVAL")),  # type: ignore
     )
     db.database_init(Path("./schema.sql").read_text(encoding="utf-8"))
-    print(db.get_all_films())
+    # print(db.get_all_films())
+    print(db.get_single_film(uuid=UUID('6dbda8dc-6d29-40b9-abf5-57a884b9f070')))
+    db.get_image("12", "THUMBNAIL")
