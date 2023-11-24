@@ -807,6 +807,17 @@ anyio = ">=3.4.0,<5"
 full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart", "pyyaml"]
 
 [[package]]
+name = "types-psycopg2"
+version = "2.9.21.16"
+description = "Typing stubs for psycopg2"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "types-psycopg2-2.9.21.16.tar.gz", hash = "sha256:44a3ae748173bb637cff31654d6bd12de9ad0c7ad73afe737df6152830ed82ed"},
+    {file = "types_psycopg2-2.9.21.16-py3-none-any.whl", hash = "sha256:e2f24b651239ccfda320ab3457099af035cf37962c36c9fa26a4dc65991aebed"},
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.8.0"
 description = "Backported and Experimental Type Hints for Python 3.8+"
@@ -852,4 +863,4 @@ test = ["websockets"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12"
-content-hash = "9e560db38f91cae5dd9b71dc5e17001d08f994cc9bed1b51550facb90ee9e6ed"
+content-hash = "9af356edaafb5b41f984d417afcae28e4e882e9e8a7b66c56c00301958017785"
