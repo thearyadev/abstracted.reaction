@@ -118,7 +118,7 @@ class Database:
                 output.append(FilmNoBytes(rating=rating, **film_data))
             return output
 
-    def get_single_film(self, uuid: RecordUUIDLike) -> FilmNoBytes:
+    def get_single_film(self, uuid: RecordUUIDLikeNullable) -> FilmNoBytes:
         """Returns a single film from the database"""
         with self.get_db_connection() as (conn, cur):
             cur.execute(

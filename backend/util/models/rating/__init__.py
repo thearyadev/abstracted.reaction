@@ -1,10 +1,10 @@
 import dataclasses
-from util.models.uuid import RecordUUIDLike
+from util.models.uuid import RecordUUIDLikeNullable
 
 
 @dataclasses.dataclass
 class Rating:
-    uuid: RecordUUIDLike
+    uuid: RecordUUIDLikeNullable
     average: float
     story: int
     positions: int
