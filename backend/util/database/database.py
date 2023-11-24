@@ -13,10 +13,11 @@ from util.models.film import FilmNoBytes
 import inspect
 from typing import Any, ContextManager, Tuple, Generator, Literal
 from util.models.uuid import RecordUUIDLike
+import dotenv
 
 
 def split_rating_and_record(
-        film_data: psycopg2.extras.DictRow,
+    film_data: psycopg2.extras.DictRow,
 ) -> tuple[Rating, dict[str, Any]]:
     """Extracts rating from a psycopg2.extras.DictRow"""
     film_data_as_dict = dict(film_data)
@@ -36,16 +37,16 @@ def split_rating_and_record(
 
 class Database:
     def __init__(
-            self,
-            db_name: str,
-            db_user: str,
-            db_password: str,
-            db_host: str,
-            db_port: str,
-            max_connections: int,
-            min_connections: int,
-            max_retries: int,
-            retry_interval: int,
+        self,
+        db_name: str,
+        db_user: str,
+        db_password: str,
+        db_host: str,
+        db_port: str,
+        max_connections: int,
+        min_connections: int,
+        max_retries: int,
+        retry_interval: int,
     ) -> None:
         self.db_name = db_name  # db connection credentials
         self.db_user = db_user
@@ -83,7 +84,7 @@ class Database:
 
     @contextlib.contextmanager
     def get_db_connection(
-            self,
+        self,
     ) -> Generator[
         Tuple[psycopg2.extensions.connection, psycopg2.extensions.cursor], None, None
     ]:
@@ -91,6 +92,18 @@ class Database:
         cursor: psycopg2.extensions.cursor = conn.cursor(cursor_factory=DictCursor)
         with conn, cursor:
             yield conn, cursor
+
+    def get_latest_commit_uuid(self) -> UUID | None:
+        """Returns the UUID of the latest commit"""
+        with self.get_db_connection() as (conn, cur):
+            cur.execute(
+                "SELECT uuid FROM public.history ORDER BY timestamp DESC LIMIT 1;"
+            )
+            try:
+                data: tuple[UUID] = cur.fetchone()  # type: ignore
+                return data[0]
+            except IndexError:
+                return None
 
     def database_init(self, schema: str) -> None:
         """Creates tables if they don't exist. Runs on production; ensure schema is clean."""
@@ -139,17 +152,19 @@ class Database:
         This will also update the rating object."""
         ...
 
-    def get_image(self, uuid: RecordUUIDLike, image_type: Literal['POSTER', 'THUMBNAIL']) -> bytes:
+    def get_image(
+        self, uuid: RecordUUIDLike, image_type: Literal["POSTER", "THUMBNAIL"]
+    ) -> bytes:
         ...
 
 
-if __name__ == "__main__":
-    import dotenv
+def database_autoconfigure() -> Database:
+    """Returns a Database object with credentials from environment variables"""
+    # TODO: ensure env vars are set, if not, load them using dotenv.
+    # TODO: fix type usage
+    dotenv.load_dotenv()
 
-    dotenv.load_dotenv(dotenv_path="../../../.env")
-    print(os.getenv("POSTGRES_DB"))
-    logging.basicConfig(level=logging.DEBUG)
-    db = Database(
+    return Database(
         db_name=os.getenv("POSTGRES_DB"),  # type: ignore
         db_user=os.getenv("POSTGRES_USER"),  # type: ignore
         db_password=os.getenv("POSTGRES_PASSWORD"),  # type: ignore
@@ -160,7 +175,7 @@ if __name__ == "__main__":
         max_retries=int(os.getenv("POSTGRES_MAX_RETRIES")),  # type: ignore
         retry_interval=int(os.getenv("POSTGRES_RETRY_INTERVAL")),  # type: ignore
     )
-    db.database_init(Path("./schema.sql").read_text(encoding="utf-8"))
-    # print(db.get_all_films())
-    print(db.get_single_film(uuid=UUID('6dbda8dc-6d29-40b9-abf5-57a884b9f070')))
-    db.get_image("12", "THUMBNAIL")
+
+
+if __name__ == "__main__":
+    ...
