@@ -116,10 +116,11 @@ class Database:
         """Returns all films in the database"""
         with self.get_db_connection() as (conn, cur):
             cur.execute(
-                """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses, r.uuid AS r_uuid, r.*
+                """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
+                 r.uuid as "r_uuid", r.average, r.boobs, r.average, r.face, r.rearview, r.shots, 
+                 r.story, r.positions, r.pussy
                     FROM public.film f
                     JOIN public.rating r ON f.rating = r.uuid;
-
                             """
             )
             # type behaviour is changed due to psycopg2.extras.DictCursor used in get_db_connection
@@ -131,11 +132,13 @@ class Database:
                 output.append(FilmNoBytes(rating=rating, **film_data))
             return output
 
-    def get_single_film(self, uuid: RecordUUIDLike) -> FilmNoBytes:
+    def get_single_film(self, uuid: RecordUUIDLike) -> FilmNoBytes | None:
         """Returns a single film from the database"""
         with self.get_db_connection() as (conn, cur):
             cur.execute(
-                """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses, r.uuid AS r_uuid, r.*
+                """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
+                 r.uuid as "r_uuid", r.average, r.boobs, r.average, r.face, r.rearview, r.shots, 
+                 r.story, r.positions, r.pussy
                     FROM public.film f
                     JOIN public.rating r ON f.rating = r.uuid
                     WHERE f.uuid = %s;
@@ -143,19 +146,21 @@ class Database:
                 (uuid,),
             )
             # type behaviour is changed due to psycopg2.extras.DictCursor used in get_db_connection
-            film_data_including_rating: psycopg2.extras.DictRow = cur.fetchone()  # type: ignore
+            film_data_including_rating: psycopg2.extras.DictRow | None = cur.fetchone()  # type: ignore
+            if film_data_including_rating is None:
+                return None
             rating, film_data = split_rating_and_record(film_data_including_rating)
             return FilmNoBytes(rating=rating, **film_data)
 
     def update_film(self, new_film_data: FilmNoBytes) -> None:
         """Will update all fields. If a FilmNoBytes object is received, the thumbnail and poster will not be altered.
         This will also update the rating object."""
-        ...
+        return None
 
     def get_image(
         self, uuid: RecordUUIDLike, image_type: Literal["POSTER", "THUMBNAIL"]
     ) -> bytes:
-        ...
+        return NotImplemented
 
 
 def database_autoconfigure() -> Database:
