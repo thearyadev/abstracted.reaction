@@ -207,7 +207,8 @@ class Database:
                 """
                 UPDATE public.film
                 SET title = %s, date_added = %s, filename = %s, watched = %s, state = %s, actresses = %s
-                WHERE uuid = %s;
+                WHERE uuid = %s
+                RETURNING uuid;
                 """,
                 (
                     new_film_data.title,
@@ -219,24 +220,32 @@ class Database:
                     new_film_data.uuid,
                 ),
             )
+            try:
+                assert (
+                    cur.fetchone()
+                )  # This will raise an AssertionError if the film doesn't exist.
+            except AssertionError:
+                raise ValueError("film does not exist")
 
+    def update_rating(self, new_rating_data: Rating) -> None:
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
+            cur.execute(
+                """ 
+                UPDATE RATING
+                SET  story = %s, positions = %s,
+                pussy = %s, shots = %s, boobs = %s, face = %s, rearview = %s
+                WHERE uuid = %s RETURNING uuid;
+                """,
+                (new_rating_data.story, new_rating_data.positions, new_rating_data.pussy, new_rating_data.shots,
+                 new_rating_data.boobs, new_rating_data.face, new_rating_data.rearview, new_rating_data.uuid),
+            )
 
-def database_autoconfigure() -> Database:
-    """Returns a Database object with credentials from environment variables"""
-    # TODO: ensure env vars are set, if not, load them using dotenv.
-    # TODO: fix type usage
-    import dotenv
+            try:
+                assert (
+                    cur.fetchone()
+                )  # This will raise an AssertionError if the rating doesn't exist.
+            except AssertionError:
+                raise ValueError("rating does not exist")
 
-    dotenv.load_dotenv()
-
-    return Database(
-        db_name=os.getenv("POSTGRES_DB"),  # type: ignore
-        db_user=os.getenv("POSTGRES_USER"),  # type: ignore
-        db_password=os.getenv("POSTGRES_PASSWORD"),  # type: ignore
-        db_host=os.getenv("POSTGRES_HOST"),  # type: ignore
-        db_port=os.getenv("POSTGRES_PORT"),  # type: ignore
-        max_connections=int(os.getenv("POSTGRES_MAX_CONNECTIONS")),  # type: ignore
-        min_connections=int(os.getenv("POSTGRES_MIN_CONNECTIONS")),  # type: ignore
-        max_retries=int(os.getenv("POSTGRES_MAX_RETRIES")),  # type: ignore
-        retry_interval=int(os.getenv("POSTGRES_RETRY_INTERVAL")),  # type: ignore
-    )
