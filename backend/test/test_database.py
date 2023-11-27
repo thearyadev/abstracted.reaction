@@ -99,6 +99,10 @@ def test_insert_film_and_single_pull(mock_db: Database) -> None:
     assert pulled_film.actresses == inserted_film.actresses
 
 
+def test_valid_latest_commit_uuid(mock_db: Database) -> None:
+    assert mock_db.get_latest_commit_uuid()
+
+
 def test_inserted_film_thumbnail_pull(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
     assert isinstance(mock_db.get_thumbnail(film.uuid), bytes)
