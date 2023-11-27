@@ -9,7 +9,6 @@ import os
 import time
 from pathlib import Path
 import shutil
-from uuid import UUID, uuid4
 from fastapi import APIRouter, FastAPI, File, Form, Query, UploadFile, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +17,7 @@ from typing import Any, MutableMapping
 from util.models.uuid import RecordUUIDLike
 from util.models.rating import Rating
 from util.models.actress_detail import ActressDetail
+from typing import Literal
 
 
 class StaticFileHandler(StaticFiles):
@@ -36,9 +36,8 @@ class StaticFileHandler(StaticFiles):
 class DatabaseReadCache:
     def __init__(self) -> None:
         self.films: list[FilmNoBytes] = list()
-        self.filmsStamp: UUID | None = None
-
-        self.images: dict[UUID, bytes] = dict()
+        self.filmsStamp: RecordUUIDLike | None = None
+        self.images: dict[RecordUUIDLike, bytes] = dict()
 
 
 class Server:
@@ -62,9 +61,13 @@ class Server:
             self.get_all_films,
             methods=["GET"],
         )
-        self.router.add_api_route("/film", self.get_single_film, methods=["get"])
+        self.router.add_api_route("/film", self.get_single_film, methods=["GET"])
+        self.router.add_api_route("/image", self.get_image, methods=["GET"])
+
+        self.router.add_api_route("/delete", self.delete_film, methods=["DELETE"])
 
     def run(self) -> Server:
+        logging.info(f"Starting uvicorn server on {self.host}:{self.port}")
         uvicorn.run(self.app, host=self.host, port=self.port)
         return self
 
@@ -81,8 +84,27 @@ class Server:
             return retrievedEntry
         raise HTTPException(status_code=404, detail="film not found")
 
-    def get_image(self, uuid: RecordUUIDLike = Query(...)) -> bytes:
-        return NotImplemented
+    def get_image(
+        self,
+        uuid: RecordUUIDLike = Query(...),
+        image_type: Literal["THUMBNAIL", "POSTER"] = Query(...),
+    ) -> Response:
+        image: bytes | None = None
+        if image_type == "THUMBNAIL":
+            image = self.cache.images.get(uuid, None)
+            if image is None:
+                pulled_image: memoryview | None = self.db.get_thumbnail(uuid)
+                if pulled_image is None:
+                    raise HTTPException(404, "film not found")
+                image = pulled_image.tobytes()
+
+        if image_type == "POSTER":
+            pulled_image = self.db.get_poster(uuid)
+            if pulled_image is None:
+                raise HTTPException(404, "film not found")
+            image = pulled_image.tobytes()
+
+        return Response(image, media_type="image/png")
 
     def set_rating(
         self, uuid: RecordUUIDLike = Query(...), rating: Rating = Query(...)
@@ -106,7 +128,7 @@ class Server:
     def serve_video(self, uuid: RecordUUIDLike = Query(...)) -> FileResponse:
         return NotImplemented
 
-    def serve_root(self, *_) -> HTMLResponse:
+    def serve_root(self, *_: tuple[Any]) -> HTMLResponse:
         return NotImplemented
 
 
