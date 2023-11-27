@@ -1,38 +1,52 @@
-from psycopg2 import pool
-from psycopg2.extras import DictCursor, UUID_adapter, register_uuid
-import logging
+import psycopg
+from psycopg import Cursor
+from typing import Sequence, Any, Generator, Iterator, TypeAlias, Tuple, ContextManager
+
+import psycopg_pool
 import os
-import random
-import time
-from pathlib import Path
-from uuid import UUID
-import psycopg2
+from psycopg.rows import class_row
 import contextlib
+
+from uuid import UUID
+import logging
+import sys
+
 from util.models.rating import Rating
-from util.models.film import FilmNoBytes
-import inspect
-from typing import Any, ContextManager, Tuple, Generator, Literal
+from util.models.film import FilmNoBytes, Film, FilmState
 from util.models.uuid import RecordUUIDLike
-import dotenv
+from dataclasses import fields
+
+Record: TypeAlias = Film | FilmNoBytes | Rating
 
 
 def split_rating_and_record(
-    film_data: psycopg2.extras.DictRow,
+    film_data: dict[str, Any],
 ) -> tuple[Rating, dict[str, Any]]:
     """Extracts rating from a psycopg2.extras.DictRow"""
-    film_data_as_dict = dict(film_data)
     rating = Rating(
-        uuid=film_data_as_dict.pop("r_uuid"),
-        average=film_data_as_dict.pop("average"),
-        story=film_data_as_dict.pop("story"),
-        positions=film_data_as_dict.pop("positions"),
-        pussy=film_data_as_dict.pop("pussy"),
-        shots=film_data_as_dict.pop("shots"),
-        boobs=film_data_as_dict.pop("boobs"),
-        face=film_data_as_dict.pop("face"),
-        rearview=film_data_as_dict.pop("rearview"),
+        uuid=film_data.pop("r_uuid"),
+        average=film_data.pop("average"),
+        story=film_data.pop("story"),
+        positions=film_data.pop("positions"),
+        pussy=film_data.pop("pussy"),
+        shots=film_data.pop("shots"),
+        boobs=film_data.pop("boobs"),
+        face=film_data.pop("face"),
+        rearview=film_data.pop("rearview"),
     )
-    return rating, film_data_as_dict
+    return rating, film_data
+
+
+class DictRowFactory:
+    def __init__(self, cursor: Cursor[Any]):
+        self.fields = (
+            [c.name for c in cursor.description]
+            if cursor.description is not None
+            else None
+        )
+
+    def __call__(self, values: Sequence[Any]) -> dict[str, Any]:
+        return dict(zip(self.fields, values))
 
 
 class Database:
@@ -48,85 +62,54 @@ class Database:
         max_retries: int,
         retry_interval: int,
     ) -> None:
-        self.db_name = db_name  # db connection credentials
-        self.db_user = db_user
-        self.db_password = db_password
-        self.db_host = db_host
-        self.db_port = db_port
-        self.min_connections = min_connections  # for connection pool
-        self.max_connections = max_connections
-        register_uuid()  # allows use of UUID objects in psycopg2
-        for attempt in range(1, max_retries + 1):
-            try:
-                self.connection_pool = pool.SimpleConnectionPool(
-                    host=self.db_host,
-                    port=self.db_port,
-                    dbname=self.db_name,
-                    user=self.db_user,
-                    password=self.db_password,
-                    minconn=self.min_connections,
-                    maxconn=self.max_connections,
-                )
-                break
-            except psycopg2.OperationalError as e:
-                logging.warning(
-                    f"Attempt {attempt} of {max_retries} to connect to database failed. Retrying in {retry_interval}"
-                    f"seconds with credentials: {self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}"
-                )
-                time.sleep(retry_interval)
-        else:
-            logging.critical(
-                f"Failed to connect to database after {max_retries} attempts. Exiting."
-            )
-            raise SystemExit(1)
-
-        logging.info("Connected to database")
-
-    @contextlib.contextmanager
-    def get_db_connection(
-        self,
-    ) -> Generator[
-        Tuple[psycopg2.extensions.connection, psycopg2.extensions.cursor], None, None
-    ]:
-        conn: psycopg2.extensions.connection = self.connection_pool.getconn()
-        cursor: psycopg2.extensions.cursor = conn.cursor(cursor_factory=DictCursor)
-        with conn, cursor:
-            yield conn, cursor
+        self.pool = psycopg_pool.ConnectionPool(
+            f"""        
+            dbname={db_name}
+            user={db_user}
+            password={db_password}
+            host={db_host}
+            port={db_port}
+        """,
+            open=True,
+        )
+        self.pool.wait(timeout=60)
 
     def get_latest_commit_uuid(self) -> UUID | None:
         """Returns the UUID of the latest commit"""
-        with self.get_db_connection() as (conn, cur):
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
             cur.execute(
                 "SELECT uuid FROM public.history ORDER BY timestamp DESC LIMIT 1;"
             )
-            try:
-                data: tuple[UUID] = cur.fetchone()  # type: ignore
-                return data[0]
-            except IndexError:
-                return None
+            if (result := cur.fetchone()) is not None:
+                return result["uuid"]
+            return None
 
     def database_init(self, schema: str) -> None:
         """Creates tables if they don't exist. Runs on production; ensure schema is clean."""
-        with self.get_db_connection() as (conn, cur):
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
             cur.execute(schema)
-            conn.commit()
         logging.info("Database initialized")
 
     def get_all_films(self) -> list[FilmNoBytes]:
         """Returns all films in the database"""
-        with self.get_db_connection() as (conn, cur):
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
             cur.execute(
                 """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
-                 r.uuid as "r_uuid", r.average, r.boobs, r.average, r.face, r.rearview, r.shots, 
+                 r.uuid as "r_uuid", r.average, r.boobs, r.face, r.rearview, r.shots,
                  r.story, r.positions, r.pussy
                     FROM public.film f
                     JOIN public.rating r ON f.rating = r.uuid;
-                            """
+                """
             )
             # type behaviour is changed due to psycopg2.extras.DictCursor used in get_db_connection
-            films_data_including_rating: list[psycopg2.extras.DictRow] = cur.fetchall()  # type: ignore
+            films_data_including_rating: list[dict] = cur.fetchall()  # type: ignore
             output = list()
-
             for film in films_data_including_rating:
                 rating, film_data = split_rating_and_record(film)
                 output.append(FilmNoBytes(rating=rating, **film_data))
@@ -134,10 +117,13 @@ class Database:
 
     def get_single_film(self, uuid: RecordUUIDLike) -> FilmNoBytes | None:
         """Returns a single film from the database"""
-        with self.get_db_connection() as (conn, cur):
+
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
             cur.execute(
                 """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
-                 r.uuid as "r_uuid", r.average, r.boobs, r.average, r.face, r.rearview, r.shots, 
+                 r.uuid as "r_uuid", r.average, r.boobs, r.average, r.face, r.rearview, r.shots,
                  r.story, r.positions, r.pussy
                     FROM public.film f
                     JOIN public.rating r ON f.rating = r.uuid
@@ -146,27 +132,101 @@ class Database:
                 (uuid,),
             )
             # type behaviour is changed due to psycopg2.extras.DictCursor used in get_db_connection
-            film_data_including_rating: psycopg2.extras.DictRow | None = cur.fetchone()  # type: ignore
+            film_data_including_rating: dict | None = cur.fetchone()  # type: ignore
             if film_data_including_rating is None:
                 return None
             rating, film_data = split_rating_and_record(film_data_including_rating)
-            return FilmNoBytes(rating=rating, **film_data)
+            return FilmNoBytes(
+                rating=rating,
+                state=FilmState.__members__[film_data.pop("state")],
+                **film_data,
+            )
+
+    def get_thumbnail(self, uuid: RecordUUIDLike) -> memoryview | None:
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
+            cur.execute(
+                """
+                    SELECT thumbnail FROM film WHERE uuid = %s
+                    """,
+                (uuid,),
+            )
+            image: dict | None = cur.fetchone()  # type: ignore
+            if image is None:
+                return None
+            ret: memoryview = image["thumbnail"]
+            return ret
+
+    def get_poster(self, uuid: RecordUUIDLike) -> memoryview | None:
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
+            cur.execute(
+                """
+                SELECT poster FROM film WHERE uuid = %s
+                """,
+                (uuid,),
+            )
+            image: psycopg2.extras.DictRow | None = cur.fetchone()  # type: ignore
+            if image is None:
+                return None
+            ret: memoryview = image["poster"]
+            return ret
+
+    def insert_film(self, new_film: Film) -> RecordUUIDLike:
+        with self.pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                WITH rating_record_uuid AS (
+                    INSERT INTO rating (average, story, positions, pussy, shots, boobs, face, rearview) 
+                    VALUES (0.0, 0, 0, 0, 0, 0, 0, 0)
+                    RETURNING uuid
+                )
+                INSERT INTO film (title, date_added, filename, watched, state, thumbnail, poster, actresses, rating) 
+                SELECT %s, %s, %s, %s, %s, %s, %s, %s, uuid
+                FROM rating_record_uuid
+                RETURNING uuid;
+                """,
+                (
+                    new_film.title,
+                    new_film.date_added,
+                    new_film.filename,
+                    new_film.watched,
+                    new_film.state,
+                    new_film.thumbnail,
+                    new_film.poster,
+                    new_film.actresses,
+                ),
+            )
+            return cur.fetchone()[0]
 
     def update_film(self, new_film_data: FilmNoBytes) -> None:
-        """Will update all fields. If a FilmNoBytes object is received, the thumbnail and poster will not be altered.
-        This will also update the rating object."""
-        return None
-
-    def get_image(
-        self, uuid: RecordUUIDLike, image_type: Literal["POSTER", "THUMBNAIL"]
-    ) -> bytes:
-        return NotImplemented
+        with self.pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE public.film
+                SET title = %s, date_added = %s, filename = %s, watched = %s, state = %s, actresses = %s
+                WHERE uuid = %s;
+                """,
+                (
+                    new_film_data.title,
+                    new_film_data.date_added,
+                    new_film_data.filename,
+                    new_film_data.watched,
+                    new_film_data.state,
+                    new_film_data.actresses,
+                    new_film_data.uuid,
+                ),
+            )
 
 
 def database_autoconfigure() -> Database:
     """Returns a Database object with credentials from environment variables"""
     # TODO: ensure env vars are set, if not, load them using dotenv.
     # TODO: fix type usage
+    import dotenv
+
     dotenv.load_dotenv()
 
     return Database(
@@ -180,7 +240,3 @@ def database_autoconfigure() -> Database:
         max_retries=int(os.getenv("POSTGRES_MAX_RETRIES")),  # type: ignore
         retry_interval=int(os.getenv("POSTGRES_RETRY_INTERVAL")),  # type: ignore
     )
-
-
-if __name__ == "__main__":
-    ...
