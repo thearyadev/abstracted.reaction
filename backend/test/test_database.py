@@ -5,6 +5,7 @@ from uuid import uuid4
 from pathlib import Path
 from util.models.film import Film, FilmState, FilmNoBytes
 from datetime import datetime, date, timedelta
+import copy
 
 
 @pytest.fixture(scope="module")
@@ -129,3 +130,43 @@ def test_update_film(mock_db: Database) -> None:
     assert updated_film.watched == new_watched
     assert updated_film.state == new_state
     assert updated_film.date_added == new_date_added
+
+
+def test_update_film_doesnt_exist(mock_db: Database) -> None:
+    film = mock_db.get_all_films()[0]
+    film.uuid = uuid4()
+    with pytest.raises(ValueError):
+        mock_db.update_film(film)
+
+
+def test_update_rating(mock_db: Database) -> None:
+    film = mock_db.get_all_films()[0]
+
+    rating_old = copy.copy(film.rating)
+    rating_to_be_updated = copy.copy(film.rating)
+
+    rating_to_be_updated.face = 9
+    rating_to_be_updated.pussy = 9
+    rating_to_be_updated.boobs = 9
+    rating_to_be_updated.positions = 9
+    rating_to_be_updated.rearview = 9
+    rating_to_be_updated.shots = 9
+    rating_to_be_updated.story = 9
+
+    mock_db.update_rating(rating_to_be_updated)
+    new_rating = mock_db.get_single_film(film.uuid).rating
+    assert new_rating.face == rating_to_be_updated.face
+    assert new_rating.pussy == rating_to_be_updated.pussy
+    assert new_rating.boobs == rating_to_be_updated.boobs
+    assert new_rating.positions == rating_to_be_updated.positions
+    assert new_rating.rearview == rating_to_be_updated.rearview
+    assert new_rating.shots == rating_to_be_updated.shots
+    assert new_rating.story == rating_to_be_updated.story
+    assert new_rating.average != rating_old.average  # check if average calc works.
+
+
+def test_update_rating_doesnt_exist(mock_db: Database):
+    rating = mock_db.get_all_films()[0].rating
+    rating.uuid = uuid4()
+    with pytest.raises(ValueError):
+        mock_db.update_rating(rating)
