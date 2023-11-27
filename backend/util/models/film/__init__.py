@@ -28,3 +28,4 @@ class FilmNoBytes:
 class Film(FilmNoBytes):
     thumbnail: bytes
     poster: bytes
+    rating: Rating | None
