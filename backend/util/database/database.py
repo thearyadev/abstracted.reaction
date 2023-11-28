@@ -20,7 +20,7 @@ Record: TypeAlias = Film | FilmNoBytes | Rating
 
 
 def split_rating_and_record(
-    film_data: dict[str, Any],
+        film_data: dict[str, Any],
 ) -> tuple[Rating, dict[str, Any]]:
     """Extracts rating from a psycopg2.extras.DictRow"""
     rating = Rating(
@@ -46,21 +46,24 @@ class DictRowFactory:
         )
 
     def __call__(self, values: Sequence[Any]) -> dict[str, Any]:
-        return dict(zip(self.fields, values))
+        # in the event that self.fields is None, the __call__ is not called.
+        # the self.fields is empty if there are no results
+        # and the __call__ is called with a record, if it exists.
+        return dict(zip(self.fields, values))  # type: ignore
 
 
 class Database:
     def __init__(
-        self,
-        db_name: str,
-        db_user: str,
-        db_password: str,
-        db_host: str,
-        db_port: str,
-        max_connections: int,
-        min_connections: int,
-        max_retries: int,
-        retry_interval: int,
+            self,
+            db_name: str,
+            db_user: str,
+            db_password: str,
+            db_host: str,
+            db_port: str,
+            max_connections: int,
+            min_connections: int,
+            max_retries: int,
+            retry_interval: int,
     ) -> None:
         self.pool = psycopg_pool.ConnectionPool(
             f"""        
@@ -77,19 +80,20 @@ class Database:
     def get_latest_commit_uuid(self) -> UUID | None:
         """Returns the UUID of the latest commit"""
         with self.pool.connection() as conn, conn.cursor(
-            row_factory=DictRowFactory
+                row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 "SELECT uuid FROM public.history ORDER BY timestamp DESC LIMIT 1;"
             )
-            if (result := cur.fetchone()) is not None:
+            result: dict[str, UUID] | None = cur.fetchone()
+            if result is not None:
                 return result["uuid"]
             return None
 
     def database_init(self, schema: str) -> None:
         """Creates tables if they don't exist. Runs on production; ensure schema is clean."""
         with self.pool.connection() as conn, conn.cursor(
-            row_factory=DictRowFactory
+                row_factory=DictRowFactory
         ) as cur:
             cur.execute(schema)
         logging.info("Database initialized")
@@ -97,7 +101,7 @@ class Database:
     def get_all_films(self) -> list[FilmNoBytes]:
         """Returns all films in the database"""
         with self.pool.connection() as conn, conn.cursor(
-            row_factory=DictRowFactory
+                row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
@@ -119,7 +123,7 @@ class Database:
         """Returns a single film from the database"""
 
         with self.pool.connection() as conn, conn.cursor(
-            row_factory=DictRowFactory
+                row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
@@ -144,7 +148,7 @@ class Database:
 
     def get_thumbnail(self, uuid: RecordUUIDLike) -> memoryview | None:
         with self.pool.connection() as conn, conn.cursor(
-            row_factory=DictRowFactory
+                row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """
@@ -160,7 +164,7 @@ class Database:
 
     def get_poster(self, uuid: RecordUUIDLike) -> memoryview | None:
         with self.pool.connection() as conn, conn.cursor(
-            row_factory=DictRowFactory
+                row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """
@@ -199,7 +203,8 @@ class Database:
                     new_film.actresses,
                 ),
             )
-            return cur.fetchone()[0]
+            result: tuple[UUID] = cur.fetchone()  # type: ignore
+            return result[0]
 
     def update_film(self, new_film_data: FilmNoBytes) -> None:
         with self.pool.connection() as conn, conn.cursor() as cur:
@@ -229,7 +234,7 @@ class Database:
 
     def update_rating(self, new_rating_data: Rating) -> None:
         with self.pool.connection() as conn, conn.cursor(
-            row_factory=DictRowFactory
+                row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """ 
@@ -249,3 +254,10 @@ class Database:
             except AssertionError:
                 raise ValueError("rating does not exist")
 
+    def get_actress_list(self) -> list[str]:
+        with self.pool.connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT DISTINCT unnest(actresses) FROM film;"
+            )
+            pulled: list[tuple[str]] = cur.fetchall()
+            return [i[0] for i in pulled]

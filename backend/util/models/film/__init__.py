@@ -28,4 +28,5 @@ class FilmNoBytes:
 class Film(FilmNoBytes):
     thumbnail: bytes
     poster: bytes
-    rating: Rating | None
+    rating: Rating | None # type: ignore
+    # type ignored because I disagree.

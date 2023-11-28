@@ -6,10 +6,11 @@ from pathlib import Path
 from util.models.film import Film, FilmState, FilmNoBytes
 from datetime import datetime, date, timedelta
 import copy
+from typing import Generator
 
 
 @pytest.fixture(scope="module")
-def mock_db() -> Database:
+def mock_db() -> Generator[Database, None, None]:
     """Uses the Docker SDK to spin up a Postgres15.3 container with some preset configs for testing."""
     docker_client = docker.from_env()
     container = docker_client.containers.create(
@@ -71,6 +72,11 @@ def test_get_poster_doesnt_exist(mock_db: Database) -> None:
     assert mock_db.get_poster(uuid4()) is None
 
 
+def test_actress_list_no_results(mock_db: Database) -> None:
+    actresses = mock_db.get_actress_list()
+    assert not len(actresses)
+
+
 def test_insert_film_and_single_pull(mock_db: Database) -> None:
     added_film_uuid = mock_db.insert_film(
         inserted_film := Film(
@@ -88,7 +94,8 @@ def test_insert_film_and_single_pull(mock_db: Database) -> None:
     )
 
     assert added_film_uuid
-    pulled_film: FilmNoBytes = mock_db.get_single_film(added_film_uuid)
+    pulled_film = mock_db.get_single_film(added_film_uuid)
+    assert isinstance(pulled_film, FilmNoBytes)
     assert isinstance(pulled_film.date_added, date)
     assert isinstance(pulled_film.actresses, list)
     assert isinstance(pulled_film.state, FilmState)
@@ -106,11 +113,13 @@ def test_valid_latest_commit_uuid(mock_db: Database) -> None:
 
 def test_inserted_film_thumbnail_pull(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
+    assert film.uuid
     assert isinstance(mock_db.get_thumbnail(film.uuid), bytes)
 
 
 def test_inserted_film_poster_pull(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
+    assert film.uuid
     assert isinstance(mock_db.get_poster(film.uuid), bytes)
 
 
@@ -123,7 +132,9 @@ def test_update_film(mock_db: Database) -> None:
     film.date_added = new_date_added = film.date_added - timedelta(days=10)
 
     mock_db.update_film(film)
+    assert film.uuid
     updated_film = mock_db.get_single_film(uuid=film.uuid)
+    assert updated_film
     assert updated_film.uuid == film.uuid
     assert updated_film.title == new_title
     assert updated_film.actresses == new_actresses
@@ -134,6 +145,7 @@ def test_update_film(mock_db: Database) -> None:
 
 def test_update_film_doesnt_exist(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
+    assert film
     film.uuid = uuid4()
     with pytest.raises(ValueError):
         mock_db.update_film(film)
@@ -154,7 +166,10 @@ def test_update_rating(mock_db: Database) -> None:
     rating_to_be_updated.story = 9
 
     mock_db.update_rating(rating_to_be_updated)
-    new_rating = mock_db.get_single_film(film.uuid).rating
+    assert film.uuid
+    new_film = mock_db.get_single_film(film.uuid)
+    assert new_film
+    new_rating = new_film.rating
     assert new_rating.face == rating_to_be_updated.face
     assert new_rating.pussy == rating_to_be_updated.pussy
     assert new_rating.boobs == rating_to_be_updated.boobs
@@ -165,8 +180,14 @@ def test_update_rating(mock_db: Database) -> None:
     assert new_rating.average != rating_old.average  # check if average calc works.
 
 
-def test_update_rating_doesnt_exist(mock_db: Database):
+def test_update_rating_doesnt_exist(mock_db: Database) -> None:
     rating = mock_db.get_all_films()[0].rating
     rating.uuid = uuid4()
     with pytest.raises(ValueError):
         mock_db.update_rating(rating)
+
+
+def test_actress_list(mock_db: Database) -> None:
+    actresses = mock_db.get_actress_list()
+    assert isinstance(actresses, list)
+    assert isinstance(actresses[0], str)
