@@ -18,6 +18,7 @@ docker = "^6.1.3"
 python-multipart = "^0.0.6"
 uvicorn = "^0.24.0.post1"
 psycopg = {extras = ["binary", "pool"], version = "^3.1.13"}
+httpx = "^0.25.2"
 
 [tool.poetry.group.transcoder.dependencies]
 ffmpeg-python = "^0.2.0"
@@ -28,10 +29,9 @@ black = "^23.11.0"
 coverage = "^7.3.2"
 mypy = "^1.7.1"
 pytest = "^7.4.3"
-psycopg = {extras = ["binary", "pool"], version = "^3.1.13"}
 whatintime = "^1.1.0"
-docker = "^6.1.3"
 docker-stubs = {git = "https://github.com/rdozier-work/docker-stubs", rev = "9de7906804ae912f1d644c97b617ac77e784fca8"}
+pytest-order = "^1.2.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -46,3 +46,9 @@ exclude = [
     't.py'
 ]
 strict = true
+
+[tool.coverage.report]
+exclude_also = [
+    "return NotImplemented",
+    "if __name__ == .__main__."
+]
