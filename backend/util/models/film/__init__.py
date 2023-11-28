@@ -7,9 +7,9 @@ from util.models.uuid import RecordUUIDLikeNullable
 
 
 class FilmState(Enum):
-    NOT_TRANSCODED = auto()
-    TRANSCODING = auto()
-    COMPLETE = auto()
+    NOT_TRANSCODED = "NOT_TRANSCODED"
+    TRANSCODING = "TRANSCODING"
+    COMPLETE = "COMPLETE"
 
 
 @dataclasses.dataclass
@@ -28,5 +28,5 @@ class FilmNoBytes:
 class Film(FilmNoBytes):
     thumbnail: bytes
     poster: bytes
-    rating: Rating | None # type: ignore
+    rating: Rating | None  # type: ignore
     # type ignored because I disagree.
