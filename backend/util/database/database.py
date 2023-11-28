@@ -1,3 +1,4 @@
+from __future__ import annotations
 import psycopg
 from psycopg import Cursor
 from typing import Sequence, Any, Generator, Iterator, TypeAlias, Tuple, ContextManager
@@ -15,12 +16,13 @@ from util.models.rating import Rating
 from util.models.film import FilmNoBytes, Film, FilmState
 from util.models.uuid import RecordUUIDLike
 from dataclasses import fields
+import dotenv
 
 Record: TypeAlias = Film | FilmNoBytes | Rating
 
 
 def split_rating_and_record(
-        film_data: dict[str, Any],
+    film_data: dict[str, Any],
 ) -> tuple[Rating, dict[str, Any]]:
     """Extracts rating from a psycopg2.extras.DictRow"""
     rating = Rating(
@@ -54,16 +56,16 @@ class DictRowFactory:
 
 class Database:
     def __init__(
-            self,
-            db_name: str,
-            db_user: str,
-            db_password: str,
-            db_host: str,
-            db_port: str,
-            max_connections: int,
-            min_connections: int,
-            max_retries: int,
-            retry_interval: int,
+        self,
+        db_name: str,
+        db_user: str,
+        db_password: str,
+        db_host: str,
+        db_port: str,
+        max_connections: int,
+        min_connections: int,
+        max_retries: int,
+        retry_interval: int,
     ) -> None:
         self.pool = psycopg_pool.ConnectionPool(
             f"""        
@@ -80,7 +82,7 @@ class Database:
     def get_latest_commit_uuid(self) -> UUID | None:
         """Returns the UUID of the latest commit"""
         with self.pool.connection() as conn, conn.cursor(
-                row_factory=DictRowFactory
+            row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 "SELECT uuid FROM public.history ORDER BY timestamp DESC LIMIT 1;"
@@ -93,7 +95,7 @@ class Database:
     def database_init(self, schema: str) -> None:
         """Creates tables if they don't exist. Runs on production; ensure schema is clean."""
         with self.pool.connection() as conn, conn.cursor(
-                row_factory=DictRowFactory
+            row_factory=DictRowFactory
         ) as cur:
             cur.execute(schema)
         logging.info("Database initialized")
@@ -101,7 +103,7 @@ class Database:
     def get_all_films(self) -> list[FilmNoBytes]:
         """Returns all films in the database"""
         with self.pool.connection() as conn, conn.cursor(
-                row_factory=DictRowFactory
+            row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
@@ -123,7 +125,7 @@ class Database:
         """Returns a single film from the database"""
 
         with self.pool.connection() as conn, conn.cursor(
-                row_factory=DictRowFactory
+            row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
@@ -148,7 +150,7 @@ class Database:
 
     def get_thumbnail(self, uuid: RecordUUIDLike) -> memoryview | None:
         with self.pool.connection() as conn, conn.cursor(
-                row_factory=DictRowFactory
+            row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """
@@ -164,11 +166,11 @@ class Database:
 
     def get_poster(self, uuid: RecordUUIDLike) -> memoryview | None:
         with self.pool.connection() as conn, conn.cursor(
-                row_factory=DictRowFactory
+            row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """
-                SELECT poster FROM film WHERE uuid = %s
+                SELECT poster FROM film WHERE uuid = %s;
                 """,
                 (uuid,),
             )
@@ -234,7 +236,7 @@ class Database:
 
     def update_rating(self, new_rating_data: Rating) -> None:
         with self.pool.connection() as conn, conn.cursor(
-                row_factory=DictRowFactory
+            row_factory=DictRowFactory
         ) as cur:
             cur.execute(
                 """ 
@@ -243,8 +245,16 @@ class Database:
                 pussy = %s, shots = %s, boobs = %s, face = %s, rearview = %s
                 WHERE uuid = %s RETURNING uuid;
                 """,
-                (new_rating_data.story, new_rating_data.positions, new_rating_data.pussy, new_rating_data.shots,
-                 new_rating_data.boobs, new_rating_data.face, new_rating_data.rearview, new_rating_data.uuid),
+                (
+                    new_rating_data.story,
+                    new_rating_data.positions,
+                    new_rating_data.pussy,
+                    new_rating_data.shots,
+                    new_rating_data.boobs,
+                    new_rating_data.face,
+                    new_rating_data.rearview,
+                    new_rating_data.uuid,
+                ),
             )
 
             try:
@@ -256,8 +266,34 @@ class Database:
 
     def get_actress_list(self) -> list[str]:
         with self.pool.connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                "SELECT DISTINCT unnest(actresses) FROM film;"
-            )
+            cur.execute("SELECT DISTINCT unnest(actresses) FROM film;")
             pulled: list[tuple[str]] = cur.fetchall()
             return [i[0] for i in pulled]
+
+    def delete_film(self, film: FilmNoBytes) -> None:
+        if not film.uuid:
+            raise ValueError("film does not exist")
+        with self.pool.connection() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM film WHERE uuid = %s", (film.uuid,))
+            if not self.get_single_film(film.uuid):
+                raise ValueError("film does not exist")
+
+    @classmethod
+    def from_env(cls, load_dot_env: bool = False) -> Database:
+        if load_dot_env:
+            dotenv.load_dotenv()
+        try:
+            return Database(
+                db_name=os.environ["POSTGRES_DB"],
+                db_user=os.environ["POSTGRES_USER"],
+                db_password=os.environ["POSTGRES_PASSWORD"],
+                db_host=os.environ["POSTGRES_HOST"],
+                db_port=os.environ["POSTGRES_PORT"],
+                max_retries=int(os.environ["POSTGRES_MAX_RETRIES"]),
+                max_connections=int(os.environ["POSTGRES_MAX_CONNECTIONS"]),
+                min_connections=int(os.environ["POSTGRES_MIN_CONNECTIONS"]),
+                retry_interval=int(os.environ["POSTGRES_RETRY_INTERVAL"]),
+            )
+        except* (KeyError, ValueError):
+            logging.critical("Environment variables are not correctly configured.")
+            raise
