@@ -292,6 +292,21 @@ websocket-client = ">=0.32.0"
 ssh = ["paramiko (>=2.4.3)"]
 
 [[package]]
+name = "docker-stubs"
+version = "0.1.0"
+description = "Stubs package for the Python Docker API."
+optional = false
+python-versions = "^3.8"
+files = []
+develop = false
+
+[package.source]
+type = "git"
+url = "https://github.com/rdozier-work/docker-stubs"
+reference = "9de7906804ae912f1d644c97b617ac77e784fca8"
+resolved_reference = "9de7906804ae912f1d644c97b617ac77e784fca8"
+
+[[package]]
 name = "fastapi"
 version = "0.104.1"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
@@ -935,4 +950,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12"
-content-hash = "8cdf766e1ebc5b259a6edcfc2e9babbb9e31daae99ca7bd72e59c706cddcf917"
+content-hash = "d8a4dd829b1a12d4555e5ded7d9bcc4708821e0e6a76834a6f6615402902e053"
