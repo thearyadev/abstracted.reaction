@@ -323,8 +323,6 @@ class Database:
         with self.pool.connection() as conn, conn.cursor() as cur:
             cur.execute("DELETE FROM film WHERE uuid = %s", (uuid,))
             conn.commit()
-            if f := self.get_single_film(uuid):
-                raise IOError("deletion failed")
 
     @classmethod
     def from_env(cls, load_dot_env: bool = False) -> Database:  # pragma: no cover

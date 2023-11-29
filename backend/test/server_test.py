@@ -10,13 +10,16 @@ import datetime
 from util.models.film import Film, FilmState, FilmNoBytes
 from dataclasses import asdict
 import json as stdlib_json
+import dotenv
 
 
 @pytest.fixture(scope="module")
 def server(mock_db: Database) -> Server:
-    server = Server(host="0.0.0.0", port=9761)  # host and port unused in this context.
+    dotenv.load_dotenv()
     mock_db.database_init(Path("./util/database/schema.sql").read_text())
-    server.db = mock_db
+    server = Server(
+        host="0.0.0.0", port=9761, db=mock_db
+    )  # host and port unused in this context.
     return server
 
 
@@ -128,30 +131,41 @@ def test_api_films_no_cache(client: TestClient, mock_db: Database) -> None:
 
 
 @pytest.mark.order(209)
-def test_api_get_serve_video_film_exists_file_not_found(client: TestClient, mock_db: Database) -> None:
+def test_api_get_serve_video_film_exists_file_not_found(
+    client: TestClient, mock_db: Database
+) -> None:
     film = mock_db.get_all_films()[0]
     assert film.uuid
     response_uuid_fetch = client.get(f"/api/get/video?uuid={film.uuid}")
     assert response_uuid_fetch.status_code == 501
     assert response_uuid_fetch.json() == {"detail": "file not found"}
 
-    response_filename_fetch = client.get(f"/api/get/video?uuid={uuid4()}&filename={film.filename}")
+    response_filename_fetch = client.get(
+        f"/api/get/video?uuid={uuid4()}&filename={film.filename}"
+    )
     assert response_filename_fetch.status_code == 501
     assert response_uuid_fetch.json() == {"detail": "file not found"}
 
 
 @pytest.mark.order(209)
-def test_api_get_serve_video_film_exists_file_found(client: TestClient, mock_db: Database) -> None:
+def test_api_get_serve_video_film_exists_file_found(
+    client: TestClient, mock_db: Database
+) -> None:
     film = mock_db.get_all_films()[0]
     assert film.uuid
     film.filename = "test_video_file.mp4"
     mock_db.update_film(film)
-    assert mock_db.get_single_film(film.uuid).filename == film.filename # Filename update was not successful.
+    assert (
+        mock_db.get_single_film(film.uuid).filename == film.filename
+    )  # Filename update was not successful.
     response_uuid_fetch = client.get(f"/api/get/video?uuid={film.uuid}")
     assert response_uuid_fetch.status_code == 200
 
-    response_filename_fetch = client.get(f"/api/get/video?uuid={uuid4()}&filename={film.filename}", )
+    response_filename_fetch = client.get(
+        f"/api/get/video?uuid={uuid4()}&filename={film.filename}",
+    )
     assert response_filename_fetch.status_code == 200
+
 
 @pytest.mark.order(209)
 def test_api_films_cache(client: TestClient, server: Server) -> None:
@@ -180,7 +194,7 @@ def test_api_thumbnail_no_cache(client: TestClient, mock_db: Database) -> None:
 
 @pytest.mark.order(211)
 def test_api_thumbnail_cache(
-        client: TestClient, mock_db: Database, server: Server
+    client: TestClient, mock_db: Database, server: Server
 ) -> None:
     film = mock_db.get_all_films()[0]
     assert film.uuid
@@ -190,8 +204,8 @@ def test_api_thumbnail_cache(
     assert response.headers.get("Content-Type") == "image/png"
     assert isinstance(response.content, bytes)
     assert response.content.decode("utf-8") == "thumbnail"
-    assert film.uuid in [i for i in server.cache.images.keys()]
-    assert response.content == server.cache.images[str(film.uuid)]
+    assert film.uuid in list(server.cache.images.keys())
+    assert response.content == server.cache.images[film.uuid]
 
 
 @pytest.mark.order(212)
@@ -242,4 +256,15 @@ def test_api_delete_film(client: TestClient, mock_db: Database) -> None:
     assert response.status_code == 200
     assert film.uuid not in [str(f.uuid) for f in mock_db.get_all_films()]
 
-# @pytest.mark.order(215)
+
+@pytest.mark.order(215)
+def test_api_set_watch_status_exists(client: TestClient, mock_db: Database) -> None:
+    film = mock_db.get_all_films()[0]
+    assert film.uuid
+    new_status = not film.watched
+    response = client.post(
+        f"/api/set/watched?watch_status={new_status}&uuid={film.uuid}"
+    )
+    assert response.status_code == 200
+    pulled_film = mock_db.get_single_film(film.uuid)
+    assert pulled_film.watched == new_status

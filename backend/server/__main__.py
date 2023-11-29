@@ -33,7 +33,7 @@ from uuid import UUID
 
 class StaticFileHandler(StaticFiles):
     async def get_response(
-            self, path: str, scope: MutableMapping[str, Any]
+        self, path: str, scope: MutableMapping[str, Any]
     ) -> Response:
         """
         Override method StaticFiles.get_response.
@@ -65,10 +65,10 @@ class Server:
         self.router = APIRouter(prefix="/api")
         self.host = host
         self.port = port
-        self.db = Database.from_env(load_dot_env=True)
+        self.db = Database.from_env(load_dot_env=True) if not db else db
         self.cache = DatabaseReadCache()
         self.configure_routes()
-        self.media_path = Path(os.environ['APP_FILM_PATH'])
+        self.media_path = Path(os.environ["APP_FILM_PATH"])
         assert self.media_path.exists()  # provided path doesnt exist
 
         self.app.include_router(self.router)
@@ -107,7 +107,6 @@ class Server:
             "/set/delete",
             self.delete_film,
             methods=["POST"],
-            responses={500: {"description": "deletion error"}},
         )
         self.router.add_api_route(
             "/set/watched",
@@ -119,7 +118,10 @@ class Server:
             "/get/actresses", self.get_actress_list, methods=["GET"]
         )
         self.router.add_api_route(
-            "/get/video", self.serve_video, methods=['GET'], responses={404: {"description": "film not found"}}
+            "/get/video",
+            self.serve_video,
+            methods=["GET"],
+            responses={404: {"description": "film not found"}},
         )
 
     def run(self) -> Server:  # pragma: no cover
@@ -141,13 +143,13 @@ class Server:
         raise HTTPException(status_code=404, detail="film not found")
 
     def get_image(
-            self,
-            uuid: UUID = Query(...),
-            image_type: Literal["THUMBNAIL", "POSTER"] = Query(...),
+        self,
+        uuid: UUID = Query(...),
+        image_type: Literal["THUMBNAIL", "POSTER"] = Query(...),
     ) -> Response:
         image: bytes | None = None
         if (
-                image_type == "THUMBNAIL"
+            image_type == "THUMBNAIL"
         ):  # thumbnail is retrieved from cache, poster is not.
             image = self.cache.images.get(uuid, None)
             if image is None:
@@ -173,14 +175,11 @@ class Server:
             raise HTTPException(status_code=404, detail="rating not found")
 
     def delete_film(self, uuid: UUID = Query(...)) -> Response:
-        try:
-            self.db.delete_film(uuid=uuid)
-            return Response(status_code=200)
-        except IOError:
-            raise HTTPException(status_code=500, detail="deletion failed")
+        self.db.delete_film(uuid=uuid)
+        return Response(status_code=200)
 
     def set_watch_status(
-            self, watch_status: bool = Query(...), uuid: UUID = Query(...)
+        self, watch_status: bool = Query(...), uuid: UUID = Query(...)
     ) -> Response:
         film = self.db.get_single_film(uuid)
         if not film:
@@ -195,17 +194,19 @@ class Server:
     def get_actress_detail(self, name: str = Query(...)) -> ActressDetail:
         return NotImplemented
 
-    def serve_video(self, uuid: UUID = Query(...), filename: Optional[str] = Query(None)) -> FileResponse:
+    def serve_video(
+        self, uuid: UUID = Query(...), filename: Optional[str] = Query(None)
+    ) -> FileResponse:
         try:
             # use filename optional arg to optimize and reduce database calls.
             # if filename is not present, use database calls
-            file_path = self.media_path / self.db.get_single_film(uuid).filename if not filename else self.media_path / (filename)
+            # get_single_film returns a FilmNoBytes which "can" be None, in which case there will be a AttributeError.
+            # type ignored as the attribute error is handled.
+            file_path = self.media_path / self.db.get_single_film(uuid).filename if not filename else self.media_path / filename  # type: ignore
             if not file_path.exists():
                 raise HTTPException(status_code=501, detail="file not found")
             return FileResponse(
-                file_path,
-                media_type="video/mp4",
-                headers={"Accept-Ranges": "bytes"}
+                file_path, media_type="video/mp4", headers={"Accept-Ranges": "bytes"}
             )
         except* (AttributeError, TypeError) as e:
             # attribute error if film not found, type error if film not found and filename is none
