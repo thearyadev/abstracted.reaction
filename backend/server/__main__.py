@@ -28,20 +28,28 @@ from util.models.rating import Rating
 from util.models.actress_detail import ActressDetail
 from typing import Literal
 from fastapi.testclient import TestClient
-from typing import Annotated
+from typing import Annotated, Optional
 
 
 class StaticFileHandler(StaticFiles):
     async def get_response(
         self, path: str, scope: MutableMapping[str, Any]
     ) -> Response:
+        """
+        Override method StaticFiles.get_response.
+        This method is called for the lookup of a static file.
+        Calls the super method, if it fails, return index.html
+        :param path:
+        :param scope:
+        :return:
+        """
         try:
             return await super().get_response(path, scope)
-        except fastapi.exceptions.HTTPException as ex:
-            if ex.status_code == 404:
+        except fastapi.exceptions.HTTPException as e:
+            if e.status_code == 404:
                 return await super().get_response("index.html", scope)
             else:
-                raise ex
+                raise e
 
 
 class DatabaseReadCache:
@@ -97,7 +105,7 @@ class Server:
             "/set/delete",
             self.delete_film,
             methods=["POST"],
-            responses={404: {"description": "film not found"}},
+            responses={500: {"description": "deletion error"}},
         )
         self.router.add_api_route(
             "/set/watched",
@@ -109,7 +117,7 @@ class Server:
             "/get/actresses", self.get_actress_list, methods=["GET"]
         )
 
-    def run(self) -> Server:
+    def run(self) -> Server:  # pragma: no cover
         logging.info(f"Starting uvicorn server on {self.host}:{self.port}")
         uvicorn.run(self.app, host=self.host, port=self.port)
         return self
@@ -133,19 +141,22 @@ class Server:
         image_type: Literal["THUMBNAIL", "POSTER"] = Query(...),
     ) -> Response:
         image: bytes | None = None
-        if image_type == "THUMBNAIL":
+        if (
+            image_type == "THUMBNAIL"
+        ):  # thumbnail is retrieved from cache, poster is not.
             image = self.cache.images.get(uuid, None)
             if image is None:
-                pulled_image: memoryview | None = self.db.get_thumbnail(uuid)
+                pulled_image: bytes | None = self.db.get_thumbnail(uuid)
                 if pulled_image is None:
                     raise HTTPException(404, "film not found")
-                image = pulled_image.tobytes()
+                image = pulled_image
+                self.cache.images[uuid] = image
 
         if image_type == "POSTER":
             pulled_image = self.db.get_poster(uuid)
             if pulled_image is None:
                 raise HTTPException(404, "film not found")
-            image = pulled_image.tobytes()
+            image = pulled_image
 
         return Response(image, media_type="image/png")
 
@@ -156,12 +167,12 @@ class Server:
         except ValueError:
             raise HTTPException(status_code=404, detail="rating not found")
 
-    def delete_film(self, film: Annotated[FilmNoBytes, Body(embed=True)]) -> Response:
+    def delete_film(self, uuid: RecordUUIDLike = Query(...)) -> Response:
         try:
-            self.db.delete_film(film)
-            return Response(200)
-        except ValueError:
-            raise HTTPException(status_code=404, detail="film not found")
+            self.db.delete_film(uuid=uuid)
+            return Response(status_code=200)
+        except IOError:
+            raise HTTPException(status_code=500, detail="deletion failed")
 
     def set_watch_status(
         self, watch_status: bool = Query(...), uuid: RecordUUIDLike = Query(...)
