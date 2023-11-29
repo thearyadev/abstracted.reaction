@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from util.database.database import Database
 import docker
@@ -46,6 +48,9 @@ def mock_db() -> Generator[Database, None, None]:
 
 @pytest.mark.order(100)
 def test_database_initializer(mock_db: Database) -> None:
+    print(os.getcwd())
+    print(Path("./util/database/schema.sql"))
+    print(Path("./util/database/schema.sql").exists())
     mock_db.database_init(schema=Path("./util/database/schema.sql").read_text())
     with mock_db.pool.connection() as conn, conn.cursor() as cur:
         cur.execute(

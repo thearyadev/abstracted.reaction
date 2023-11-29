@@ -1,6 +1,6 @@
 from util.database.database import Database
 import pytest
-from .test_database import mock_db
+from .database_test import mock_db
 from fastapi.testclient import TestClient
 from server.__main__ import Server
 from pathlib import Path
@@ -101,6 +101,7 @@ def test_api_get_actress_list_no_entries(client: TestClient) -> None:
 def test_api_get_serve_video_film_doesnt_exist_by_uuid(client: TestClient) -> None:
     response = client.get(f"/api/get/video?uuid={uuid4()}")
     assert response.status_code == 404
+    assert response.json() == {"detail": "film not found"}
 
 
 @pytest.mark.order(208)
@@ -125,6 +126,32 @@ def test_api_films_no_cache(client: TestClient, mock_db: Database) -> None:
     assert isinstance(json := response.json(), list)
     assert len(json) == size
 
+
+@pytest.mark.order(209)
+def test_api_get_serve_video_film_exists_file_not_found(client: TestClient, mock_db: Database) -> None:
+    film = mock_db.get_all_films()[0]
+    assert film.uuid
+    response_uuid_fetch = client.get(f"/api/get/video?uuid={film.uuid}")
+    assert response_uuid_fetch.status_code == 501
+    assert response_uuid_fetch.json() == {"detail": "file not found"}
+
+    response_filename_fetch = client.get(f"/api/get/video?uuid={uuid4()}&filename={film.filename}")
+    assert response_filename_fetch.status_code == 501
+    assert response_uuid_fetch.json() == {"detail": "file not found"}
+
+
+@pytest.mark.order(209)
+def test_api_get_serve_video_film_exists_file_found(client: TestClient, mock_db: Database) -> None:
+    film = mock_db.get_all_films()[0]
+    assert film.uuid
+    film.filename = "test_video_file.mp4"
+    mock_db.update_film(film)
+    assert mock_db.get_single_film(film.uuid).filename == film.filename # Filename update was not successful.
+    response_uuid_fetch = client.get(f"/api/get/video?uuid={film.uuid}")
+    assert response_uuid_fetch.status_code == 200
+
+    response_filename_fetch = client.get(f"/api/get/video?uuid={uuid4()}&filename={film.filename}", )
+    assert response_filename_fetch.status_code == 200
 
 @pytest.mark.order(209)
 def test_api_films_cache(client: TestClient, server: Server) -> None:
@@ -163,7 +190,7 @@ def test_api_thumbnail_cache(
     assert response.headers.get("Content-Type") == "image/png"
     assert isinstance(response.content, bytes)
     assert response.content.decode("utf-8") == "thumbnail"
-    assert str(film.uuid) in server.cache.images
+    assert film.uuid in [i for i in server.cache.images.keys()]
     assert response.content == server.cache.images[str(film.uuid)]
 
 

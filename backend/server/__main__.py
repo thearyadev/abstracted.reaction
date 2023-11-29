@@ -23,12 +23,12 @@ from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 from util.models.film import FilmNoBytes
 from typing import Any, MutableMapping
-from util.models.uuid import RecordUUIDLike
 from util.models.rating import Rating
 from util.models.actress_detail import ActressDetail
 from typing import Literal
 from fastapi.testclient import TestClient
 from typing import Annotated, Optional
+from uuid import UUID
 
 
 class StaticFileHandler(StaticFiles):
@@ -55,8 +55,8 @@ class StaticFileHandler(StaticFiles):
 class DatabaseReadCache:
     def __init__(self) -> None:
         self.films: list[FilmNoBytes] = list()
-        self.filmsStamp: RecordUUIDLike | None = None
-        self.images: dict[RecordUUIDLike, bytes] = dict()
+        self.filmsStamp: UUID | None = None
+        self.images: dict[UUID, bytes] = dict()
 
 
 class Server:
@@ -135,14 +135,14 @@ class Server:
             )
         return self.cache.films
 
-    def get_single_film(self, uuid: RecordUUIDLike = Query(...)) -> FilmNoBytes:
+    def get_single_film(self, uuid: UUID = Query(...)) -> FilmNoBytes:
         if retrievedEntry := self.db.get_single_film(uuid):
             return retrievedEntry
         raise HTTPException(status_code=404, detail="film not found")
 
     def get_image(
             self,
-            uuid: RecordUUIDLike = Query(...),
+            uuid: UUID = Query(...),
             image_type: Literal["THUMBNAIL", "POSTER"] = Query(...),
     ) -> Response:
         image: bytes | None = None
@@ -172,7 +172,7 @@ class Server:
         except ValueError:
             raise HTTPException(status_code=404, detail="rating not found")
 
-    def delete_film(self, uuid: RecordUUIDLike = Query(...)) -> Response:
+    def delete_film(self, uuid: UUID = Query(...)) -> Response:
         try:
             self.db.delete_film(uuid=uuid)
             return Response(status_code=200)
@@ -180,7 +180,7 @@ class Server:
             raise HTTPException(status_code=500, detail="deletion failed")
 
     def set_watch_status(
-            self, watch_status: bool = Query(...), uuid: RecordUUIDLike = Query(...)
+            self, watch_status: bool = Query(...), uuid: UUID = Query(...)
     ) -> Response:
         film = self.db.get_single_film(uuid)
         if not film:
@@ -195,16 +195,19 @@ class Server:
     def get_actress_detail(self, name: str = Query(...)) -> ActressDetail:
         return NotImplemented
 
-    def serve_video(self, uuid: RecordUUIDLike = Query(...), filename: Optional[str] = Query(...)) -> FileResponse:
+    def serve_video(self, uuid: UUID = Query(...), filename: Optional[str] = Query(None)) -> FileResponse:
         try:
             # use filename optional arg to optimize and reduce database calls.
-            # if filename is not present, use database calls.
+            # if filename is not present, use database calls
+            file_path = self.media_path / self.db.get_single_film(uuid).filename if not filename else self.media_path / (filename)
+            if not file_path.exists():
+                raise HTTPException(status_code=501, detail="file not found")
             return FileResponse(
-                self.media_path / self.db.get_single_film(uuid).filename if not filename else filename,
+                file_path,
                 media_type="video/mp4",
                 headers={"Accept-Ranges": "bytes"}
             )
-        except* (AttributeError, TypeError):
+        except* (AttributeError, TypeError) as e:
             # attribute error if film not found, type error if film not found and filename is none
             raise HTTPException(status_code=404, detail="film not found")
 
