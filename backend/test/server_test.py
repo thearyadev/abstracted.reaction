@@ -98,6 +98,12 @@ def test_api_get_actress_list_no_entries(client: TestClient) -> None:
 
 
 @pytest.mark.order(208)
+def test_api_get_serve_video_film_doesnt_exist_by_uuid(client: TestClient) -> None:
+    response = client.get(f"/api/get/video?uuid={uuid4()}")
+    assert response.status_code == 404
+
+
+@pytest.mark.order(208)
 def test_api_films_no_cache(client: TestClient, mock_db: Database) -> None:
     film = Film(
         uuid=None,
@@ -147,7 +153,7 @@ def test_api_thumbnail_no_cache(client: TestClient, mock_db: Database) -> None:
 
 @pytest.mark.order(211)
 def test_api_thumbnail_cache(
-    client: TestClient, mock_db: Database, server: Server
+        client: TestClient, mock_db: Database, server: Server
 ) -> None:
     film = mock_db.get_all_films()[0]
     assert film.uuid
@@ -208,3 +214,5 @@ def test_api_delete_film(client: TestClient, mock_db: Database) -> None:
     response = client.post(f"/api/set/delete?uuid={film.uuid}")
     assert response.status_code == 200
     assert film.uuid not in [str(f.uuid) for f in mock_db.get_all_films()]
+
+# @pytest.mark.order(215)

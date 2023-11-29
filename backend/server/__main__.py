@@ -33,7 +33,7 @@ from typing import Annotated, Optional
 
 class StaticFileHandler(StaticFiles):
     async def get_response(
-        self, path: str, scope: MutableMapping[str, Any]
+            self, path: str, scope: MutableMapping[str, Any]
     ) -> Response:
         """
         Override method StaticFiles.get_response.
@@ -68,6 +68,8 @@ class Server:
         self.db = Database.from_env(load_dot_env=True)
         self.cache = DatabaseReadCache()
         self.configure_routes()
+        self.media_path = Path(os.environ['APP_FILM_PATH'])
+        assert self.media_path.exists()  # provided path doesnt exist
 
         self.app.include_router(self.router)
         # self.app.mount(
@@ -116,6 +118,9 @@ class Server:
         self.router.add_api_route(
             "/get/actresses", self.get_actress_list, methods=["GET"]
         )
+        self.router.add_api_route(
+            "/get/video", self.serve_video, methods=['GET'], responses={404: {"description": "film not found"}}
+        )
 
     def run(self) -> Server:  # pragma: no cover
         logging.info(f"Starting uvicorn server on {self.host}:{self.port}")
@@ -136,13 +141,13 @@ class Server:
         raise HTTPException(status_code=404, detail="film not found")
 
     def get_image(
-        self,
-        uuid: RecordUUIDLike = Query(...),
-        image_type: Literal["THUMBNAIL", "POSTER"] = Query(...),
+            self,
+            uuid: RecordUUIDLike = Query(...),
+            image_type: Literal["THUMBNAIL", "POSTER"] = Query(...),
     ) -> Response:
         image: bytes | None = None
         if (
-            image_type == "THUMBNAIL"
+                image_type == "THUMBNAIL"
         ):  # thumbnail is retrieved from cache, poster is not.
             image = self.cache.images.get(uuid, None)
             if image is None:
@@ -175,7 +180,7 @@ class Server:
             raise HTTPException(status_code=500, detail="deletion failed")
 
     def set_watch_status(
-        self, watch_status: bool = Query(...), uuid: RecordUUIDLike = Query(...)
+            self, watch_status: bool = Query(...), uuid: RecordUUIDLike = Query(...)
     ) -> Response:
         film = self.db.get_single_film(uuid)
         if not film:
@@ -190,8 +195,18 @@ class Server:
     def get_actress_detail(self, name: str = Query(...)) -> ActressDetail:
         return NotImplemented
 
-    def serve_video(self, uuid: RecordUUIDLike = Query(...)) -> FileResponse:
-        return NotImplemented
+    def serve_video(self, uuid: RecordUUIDLike = Query(...), filename: Optional[str] = Query(...)) -> FileResponse:
+        try:
+            # use filename optional arg to optimize and reduce database calls.
+            # if filename is not present, use database calls.
+            return FileResponse(
+                self.media_path / self.db.get_single_film(uuid).filename if not filename else filename,
+                media_type="video/mp4",
+                headers={"Accept-Ranges": "bytes"}
+            )
+        except* (AttributeError, TypeError):
+            # attribute error if film not found, type error if film not found and filename is none
+            raise HTTPException(status_code=404, detail="film not found")
 
     def serve_root(self, *_: tuple[Any]) -> HTMLResponse:
         return NotImplemented
