@@ -24,7 +24,11 @@ Record: TypeAlias = Film | FilmNoBytes | Rating
 def split_rating_and_record(
     film_data: dict[str, Any],
 ) -> tuple[Rating, dict[str, Any]]:
-    """Extracts rating from a psycopg2.extras.DictRow"""
+    """
+    Removes the rating-related objects
+    :param film_data: dict row mapped database record
+    :return: rating, remaining data
+    """
     rating = Rating(
         uuid=film_data.pop("r_uuid"),
         average=film_data.pop("average"),
@@ -45,12 +49,14 @@ class DictRowFactory:
             [c.name for c in cursor.description]
             if cursor.description is not None
             else None
-        )
+        )  # create a list[str] of the column names
 
     def __call__(self, values: Sequence[Any]) -> dict[str, Any]:
         # in the event that self.fields is None, the __call__ is not called.
         # the self.fields is empty if there are no results
         # and the __call__ is called with a record, if it exists.
+
+        # zip names with tuple positions to make dict
         return dict(zip(self.fields, values))  # type: ignore
 
 
@@ -75,12 +81,15 @@ class Database:
             host={db_host}
             port={db_port}
         """,
-            open=True,
+            open=True,  # ensure connection is open (note: default: True is being removed in the next version of psycopg
         )
         self.pool.wait(timeout=60)
 
     def get_latest_commit_uuid(self) -> UUID | None:
-        """Returns the UUID of the latest commit"""
+        """
+        Gets the uuid of the latest commit
+        :return: uuid - latest commit
+        """
         with self.pool.connection() as conn, conn.cursor(
             row_factory=DictRowFactory
         ) as cur:
@@ -93,7 +102,9 @@ class Database:
             return None
 
     def database_init(self, schema: str) -> None:
-        """Creates tables if they don't exist. Runs on production; ensure schema is clean."""
+        """Creates tables if they don't exist. Runs on production; ensure schema is clean.
+        :param schema: string of initial database schema
+        """
         with self.pool.connection() as conn, conn.cursor(
             row_factory=DictRowFactory
         ) as cur:
@@ -101,7 +112,9 @@ class Database:
         logging.info("Database initialized")
 
     def get_all_films(self) -> list[FilmNoBytes]:
-        """Returns all films in the database"""
+        """Returns all films in the database
+        :return: list of FilmNoBytes
+        """
         with self.pool.connection() as conn, conn.cursor(
             row_factory=DictRowFactory
         ) as cur:
@@ -122,7 +135,10 @@ class Database:
             return output
 
     def get_single_film(self, uuid: RecordUUIDLike) -> FilmNoBytes | None:
-        """Returns a single film from the database"""
+        """Returns a single film from the database
+        :param uuid: uuid of the film record
+        :return:
+        """
 
         with self.pool.connection() as conn, conn.cursor(
             row_factory=DictRowFactory
@@ -148,7 +164,12 @@ class Database:
                 **film_data,
             )
 
-    def get_thumbnail(self, uuid: RecordUUIDLike) -> memoryview | None:
+    def get_thumbnail(self, uuid: RecordUUIDLike) -> bytes | None:
+        """
+        gets a thumbnail from the database
+        :param uuid: uuid of film record
+        :return: memoryview, none if not found.
+        """
         with self.pool.connection() as conn, conn.cursor(
             row_factory=DictRowFactory
         ) as cur:
@@ -158,13 +179,17 @@ class Database:
                     """,
                 (uuid,),
             )
-            image: dict | None = cur.fetchone()  # type: ignore
+            image: dict[str, bytes] | None = cur.fetchone()
             if image is None:
                 return None
-            ret: memoryview = image["thumbnail"]
-            return ret
+            return image["thumbnail"]
 
     def get_poster(self, uuid: RecordUUIDLike) -> memoryview | None:
+        """
+        gets a thumbnail from the database
+        :param uuid: uuid of film record
+        :return: memoryview, none if not found.
+        """
         with self.pool.connection() as conn, conn.cursor(
             row_factory=DictRowFactory
         ) as cur:
@@ -181,6 +206,11 @@ class Database:
             return ret
 
     def insert_film(self, new_film: Film) -> RecordUUIDLike:
+        """
+        inserts a film into the database.
+        :param new_film: Film
+        :return: FilmNoBytes
+        """
         with self.pool.connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -209,6 +239,11 @@ class Database:
             return result[0]
 
     def update_film(self, new_film_data: FilmNoBytes) -> None:
+        """
+        Updates the data in the film record.
+        Does not change: thumbnail, poster, rating.
+        :param new_film_data:
+        """
         with self.pool.connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -235,6 +270,10 @@ class Database:
                 raise ValueError("film does not exist")
 
     def update_rating(self, new_rating_data: Rating) -> None:
+        """
+        update the rating data.
+        :param new_rating_data:
+        """
         with self.pool.connection() as conn, conn.cursor(
             row_factory=DictRowFactory
         ) as cur:
@@ -265,21 +304,36 @@ class Database:
                 raise ValueError("rating does not exist")
 
     def get_actress_list(self) -> list[str]:
+        """
+        gets the list of actresses in the database
+        :return:
+        """
         with self.pool.connection() as conn, conn.cursor() as cur:
             cur.execute("SELECT DISTINCT unnest(actresses) FROM film;")
             pulled: list[tuple[str]] = cur.fetchall()
             return [i[0] for i in pulled]
 
-    def delete_film(self, film: FilmNoBytes) -> None:
-        if not film.uuid:
-            raise ValueError("film does not exist")
+    def delete_film(self, uuid: RecordUUIDLike) -> None:
+        """
+        deletes a film from the database. Does not handle file deletion
+        :param uuid:
+        :param film:
+        """
+
         with self.pool.connection() as conn, conn.cursor() as cur:
-            cur.execute("DELETE FROM film WHERE uuid = %s", (film.uuid,))
-            if not self.get_single_film(film.uuid):
-                raise ValueError("film does not exist")
+            cur.execute("DELETE FROM film WHERE uuid = %s", (uuid,))
+            conn.commit()
+            if f := self.get_single_film(uuid):
+                raise IOError("deletion failed")
 
     @classmethod
-    def from_env(cls, load_dot_env: bool = False) -> Database:
+    def from_env(cls, load_dot_env: bool = False) -> Database:  # pragma: no cover
+        """
+        Builds a Database instance using pre-defined strings in the local environment.
+        If load_dot_env is True, dotenv.load_env() will be run to retrieve the environment vars from .env file.
+        :param load_dot_env:
+        :return:
+        """
         if load_dot_env:
             dotenv.load_dotenv()
         try:
