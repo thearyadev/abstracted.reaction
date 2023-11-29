@@ -15,8 +15,8 @@ def mock_db() -> Generator[Database, None, None]:
     docker_client: docker.client.DockerClient = docker.from_env()
     for existing_container in docker_client.containers.list():
         if existing_container.name.startswith("abstract.reaction-pytest-postgresql-"):
-            existing_container.kill()
-            existing_container.remove()
+            existing_container.kill()  # pragma: no cover
+            existing_container.remove()  # pragma: no cover
 
     container = docker_client.containers.create(
         image="postgres:15.3-alpine",
@@ -44,7 +44,7 @@ def mock_db() -> Generator[Database, None, None]:
     container.remove()
 
 
-@pytest.mark.order(0)
+@pytest.mark.order(100)
 def test_database_initializer(mock_db: Database) -> None:
     mock_db.database_init(schema=Path("./util/database/schema.sql").read_text())
     with mock_db.pool.connection() as conn, conn.cursor() as cur:
@@ -57,39 +57,39 @@ def test_database_initializer(mock_db: Database) -> None:
         assert ("history",) in result
 
 
-@pytest.mark.order(1)
+@pytest.mark.order(101)
 def test_none_latest_stamp(mock_db: Database) -> None:
     latest_commit_uuid = mock_db.get_latest_commit_uuid()
     assert latest_commit_uuid is None
 
 
-@pytest.mark.order(2)
+@pytest.mark.order(102)
 def test_get_all_films_empty_list(mock_db: Database) -> None:
     assert not len(mock_db.get_all_films())
 
 
-@pytest.mark.order(3)
+@pytest.mark.order(103)
 def test_get_single_film_doesnt_exist(mock_db: Database) -> None:
     assert mock_db.get_single_film(uuid=uuid4()) is None
 
 
-@pytest.mark.order(4)
+@pytest.mark.order(104)
 def test_get_thumbnail_doesnt_exist(mock_db: Database) -> None:
     assert mock_db.get_thumbnail(uuid4()) is None
 
 
-@pytest.mark.order(5)
+@pytest.mark.order(105)
 def test_get_poster_doesnt_exist(mock_db: Database) -> None:
     assert mock_db.get_poster(uuid4()) is None
 
 
-@pytest.mark.order(6)
+@pytest.mark.order(106)
 def test_actress_list_no_results(mock_db: Database) -> None:
     actresses = mock_db.get_actress_list()
     assert not len(actresses)
 
 
-@pytest.mark.order(7)
+@pytest.mark.order(107)
 def test_insert_film_and_single_pull(mock_db: Database) -> None:
     added_film_uuid = mock_db.insert_film(
         inserted_film := Film(
@@ -120,26 +120,26 @@ def test_insert_film_and_single_pull(mock_db: Database) -> None:
     assert pulled_film.actresses == inserted_film.actresses
 
 
-@pytest.mark.order(8)
+@pytest.mark.order(108)
 def test_valid_latest_commit_uuid(mock_db: Database) -> None:
     assert mock_db.get_latest_commit_uuid()
 
 
-@pytest.mark.order(9)
+@pytest.mark.order(109)
 def test_inserted_film_thumbnail_pull(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
     assert film.uuid
     assert isinstance(mock_db.get_thumbnail(film.uuid), bytes)
 
 
-@pytest.mark.order(10)
+@pytest.mark.order(110)
 def test_inserted_film_poster_pull(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
     assert film.uuid
     assert isinstance(mock_db.get_poster(film.uuid), bytes)
 
 
-@pytest.mark.order(11)
+@pytest.mark.order(111)
 def test_update_film(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
     film.title = new_title = "update_test_title"
@@ -160,7 +160,7 @@ def test_update_film(mock_db: Database) -> None:
     assert updated_film.date_added == new_date_added
 
 
-@pytest.mark.order(12)
+@pytest.mark.order(112)
 def test_update_film_doesnt_exist(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
     assert film
@@ -169,7 +169,7 @@ def test_update_film_doesnt_exist(mock_db: Database) -> None:
         mock_db.update_film(film)
 
 
-@pytest.mark.order(13)
+@pytest.mark.order(113)
 def test_update_rating(mock_db: Database) -> None:
     film = mock_db.get_all_films()[0]
 
@@ -199,7 +199,7 @@ def test_update_rating(mock_db: Database) -> None:
     assert new_rating.average != rating_old.average  # check if average calc works.
 
 
-@pytest.mark.order(14)
+@pytest.mark.order(114)
 def test_update_rating_doesnt_exist(mock_db: Database) -> None:
     rating = mock_db.get_all_films()[0].rating
     rating.uuid = uuid4()
@@ -207,8 +207,21 @@ def test_update_rating_doesnt_exist(mock_db: Database) -> None:
         mock_db.update_rating(rating)
 
 
-@pytest.mark.order(15)
+@pytest.mark.order(115)
 def test_actress_list(mock_db: Database) -> None:
     actresses = mock_db.get_actress_list()
     assert isinstance(actresses, list)
     assert isinstance(actresses[0], str)
+
+
+@pytest.mark.order(116)
+def test_film_delete_doesnt_exist(mock_db: Database) -> None:
+    mock_db.delete_film(uuid4())
+
+
+@pytest.mark.order(117)
+def test_film_delete(mock_db: Database) -> None:
+    film = mock_db.get_all_films()[0]
+    assert film.uuid
+    mock_db.delete_film(film.uuid)
+    assert mock_db.get_single_film(film.uuid) is None
