@@ -1,34 +1,24 @@
 from __future__ import annotations
 
-import uvicorn
-import fastapi
-from util.database.database import Database
-import datetime
 import logging
 import os
-import time
 from pathlib import Path
-import shutil
-from fastapi import (
-    APIRouter,
-    FastAPI,
-    File,
-    Form,
-    Query,
-    UploadFile,
-    HTTPException,
-    Body,
-)
-from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
-from fastapi.staticfiles import StaticFiles
-from util.models.film import FilmNoBytes
-from typing import Any, MutableMapping
-from util.models.rating import Rating
-from util.models.actress_detail import ActressDetail
-from typing import Literal
-from fastapi.testclient import TestClient
-from typing import Annotated, Optional
+from typing import Annotated, Any, Literal, MutableMapping, Optional
 from uuid import UUID
+
+import fastapi
+import uvicorn
+from fastapi import (APIRouter, Body, FastAPI, File, Form, HTTPException,
+                     Query, UploadFile)
+from fastapi.responses import (FileResponse, HTMLResponse, Response,
+                               StreamingResponse)
+from fastapi.staticfiles import StaticFiles
+from fastapi.testclient import TestClient
+
+from util.database.database import Database
+from util.models.actress_detail import ActressDetail
+from util.models.film import FilmNoBytes
+from util.models.rating import Rating
 
 
 class StaticFileHandler(StaticFiles):
@@ -123,6 +113,9 @@ class Server:
             methods=["GET"],
             responses={404: {"description": "film not found"}},
         )
+        self.router.add_api_route(
+            "/get/actress_detail", self.get_actress_detail, methods=["GET"]
+        )
 
     def run(self) -> Server:  # pragma: no cover
         logging.info(f"Starting uvicorn server on {self.host}:{self.port}")
@@ -192,7 +185,7 @@ class Server:
         return self.db.get_actress_list()
 
     def get_actress_detail(self, name: str = Query(...)) -> ActressDetail:
-        return NotImplemented
+        return self.db.get_actress_detail(name)
 
     def serve_video(
         self, uuid: UUID = Query(...), filename: Optional[str] = Query(None)
