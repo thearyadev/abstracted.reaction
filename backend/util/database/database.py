@@ -1,22 +1,20 @@
 from __future__ import annotations
-import psycopg
-from psycopg import Cursor
-from typing import Sequence, Any, Generator, Iterator, TypeAlias, Tuple, ContextManager
 
-import psycopg_pool
-import os
-from psycopg.rows import class_row
-import contextlib
-
-from uuid import UUID
 import logging
-import sys
+import os
+from typing import (Any, Sequence, TypeAlias)
+from uuid import UUID
 
-from util.models.rating import Rating
-from util.models.film import FilmNoBytes, Film, FilmState
-from util.models.uuid import RecordUUIDLike
-from dataclasses import fields
 import dotenv
+import psycopg
+import psycopg_pool
+from psycopg import Cursor
+from psycopg.rows import class_row
+
+from util.models.actress_detail import ActressDetail
+from util.models.film import Film, FilmNoBytes, FilmState
+from util.models.rating import Rating
+from util.models.uuid import RecordUUIDLike
 
 Record: TypeAlias = Film | FilmNoBytes | Rating
 
@@ -127,7 +125,7 @@ class Database:
                 """
             )
             # type behaviour is changed due to psycopg2.extras.DictCursor used in get_db_connection
-            films_data_including_rating: list[dict] = cur.fetchall()  # type: ignore
+            films_data_including_rating: list[dict[str, Any]] = cur.fetchall()
             output = list()
             for film in films_data_including_rating:
                 rating, film_data = split_rating_and_record(film)
@@ -313,6 +311,28 @@ class Database:
             pulled: list[tuple[str]] = cur.fetchall()
             return [i[0] for i in pulled]
 
+    def get_actress_detail(self, name: str) -> ActressDetail:
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
+            cur.execute(
+                """
+                 SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
+                 r.uuid as "r_uuid", r.average, r.boobs, r.average, r.face, r.rearview, r.shots,
+                 r.story, r.positions, r.pussy
+                    FROM public.film f
+                    JOIN public.rating r ON f.rating = r.uuid
+                    WHERE %s = ANY(f.actresses);
+            """,
+                (name,),
+            )
+            films_data: list[dict[str, Any]] = cur.fetchall()
+            output = list()
+            for film in films_data:
+                rating, film_data = split_rating_and_record(film)
+                output.append(FilmNoBytes(rating=rating, **film_data))
+            return ActressDetail(name=name, films=output)
+
     def delete_film(self, uuid: RecordUUIDLike) -> None:
         """
         deletes a film from the database. Does not handle file deletion
@@ -324,6 +344,38 @@ class Database:
             cur.execute("DELETE FROM film WHERE uuid = %s", (uuid,))
             conn.commit()
 
+    def get_not_transcoded_and_set_transcoding(self) -> FilmNoBytes | None:
+        with self.pool.connection() as conn, conn.cursor(
+            row_factory=DictRowFactory
+        ) as cur:
+            cur.execute(
+                """
+            SELECT f.uuid, f.title, f.date_added, f.filename, f.watched, f.state, f.actresses,
+                 r.uuid as "r_uuid", r.average, r.boobs, r.average, r.face, r.rearview, r.shots,
+                 r.story, r.positions, r.pussy 
+             FROM film f
+             JOIN rating r ON f.rating = r.uuid
+            WHERE state = %s FOR UPDATE SKIP LOCKED LIMIT 1;
+            """,
+                (FilmState.NOT_TRANSCODED,),
+            )
+            result: dict[str, Any] | None = cur.fetchone()
+
+            if result is None:
+                return None
+            rating, remaining = split_rating_and_record(result)
+
+            ret = FilmNoBytes(rating=rating, **remaining)
+            ret.state = FilmState.TRANSCODING
+            cur.execute(
+                """
+            UPDATE film SET state = %s WHERE uuid = %s
+           """,
+                (ret.state, ret.uuid),
+            )
+
+            return ret
+
     @classmethod
     def from_env(cls, load_dot_env: bool = False) -> Database:  # pragma: no cover
         """
@@ -333,7 +385,7 @@ class Database:
         :return:
         """
         if load_dot_env:
-            dotenv.load_dotenv()
+            assert dotenv.load_dotenv()
         try:
             return Database(
                 db_name=os.environ["POSTGRES_DB"],
