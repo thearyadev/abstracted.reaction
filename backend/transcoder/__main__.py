@@ -11,7 +11,12 @@ from util.models.film import FilmState
 
 
 def ensure_io_permissions(path: Path) -> bool:
-    return all((os.access(path, os.R_OK), os.access(path, os.W_OK),))
+    return all(
+        (
+            os.access(path, os.R_OK),
+            os.access(path, os.W_OK),
+        )
+    )
 
 
 def encode(input_file: Path, output_file: Path) -> None:
@@ -55,7 +60,9 @@ def main() -> int:
 
         delete(file=film_file_path)
         rename(target=transcoded_file_path, destination=film_file_path)
-        updated_film = db.get_single_film(film.uuid)  # fetch again to ensure data is the most up to date.
+        updated_film = db.get_single_film(
+            film.uuid
+        )  # fetch again to ensure data is the most up to date.
         updated_film.state = FilmState.COMPLETE
         db.update_film(updated_film)
     return 0

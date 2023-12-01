@@ -8,10 +8,17 @@ from uuid import UUID
 
 import fastapi
 import uvicorn
-from fastapi import (APIRouter, Body, FastAPI, File, Form, HTTPException,
-                     Query, UploadFile)
-from fastapi.responses import (FileResponse, HTMLResponse, Response,
-                               StreamingResponse)
+from fastapi import (
+    APIRouter,
+    Body,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+)
+from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.testclient import TestClient
 
