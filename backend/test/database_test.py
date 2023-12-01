@@ -1,14 +1,15 @@
-import os
-
-import pytest
-from util.database.database import Database
-import docker
-from uuid import uuid4
-from pathlib import Path
-from util.models.film import Film, FilmState, FilmNoBytes
-from datetime import datetime, date, timedelta
 import copy
+from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Generator
+from uuid import uuid4
+
+import docker
+import pytest
+
+from util.database.database import Database
+from util.models.actress_detail import ActressDetail
+from util.models.film import Film, FilmNoBytes, FilmState
 
 
 @pytest.fixture(scope="module")
@@ -48,9 +49,6 @@ def mock_db() -> Generator[Database, None, None]:
 
 @pytest.mark.order(100)
 def test_database_initializer(mock_db: Database) -> None:
-    print(os.getcwd())
-    print(Path("./util/database/schema.sql"))
-    print(Path("./util/database/schema.sql").exists())
     mock_db.database_init(schema=Path("./util/database/schema.sql").read_text())
     with mock_db.pool.connection() as conn, conn.cursor() as cur:
         cur.execute(
@@ -66,6 +64,12 @@ def test_database_initializer(mock_db: Database) -> None:
 def test_none_latest_stamp(mock_db: Database) -> None:
     latest_commit_uuid = mock_db.get_latest_commit_uuid()
     assert latest_commit_uuid is None
+
+
+@pytest.mark.order(101)
+def test_get_not_transcoded_and_set_transcoding_no_records(mock_db: Database) -> None:
+    result = mock_db.get_not_transcoded_and_set_transcoding()
+    assert result is None
 
 
 @pytest.mark.order(102)
@@ -92,6 +96,16 @@ def test_get_poster_doesnt_exist(mock_db: Database) -> None:
 def test_actress_list_no_results(mock_db: Database) -> None:
     actresses = mock_db.get_actress_list()
     assert not len(actresses)
+
+
+@pytest.mark.order(106)
+def test_actress_detail_no_results(mock_db: Database) -> None:
+    result = mock_db.get_actress_detail(name="no exist")
+    assert isinstance(result, ActressDetail)
+    assert isinstance(result.name, str)
+    assert isinstance(result.films, list)
+    assert len(result.name)
+    assert not len(result.films)
 
 
 @pytest.mark.order(107)
@@ -230,3 +244,64 @@ def test_film_delete(mock_db: Database) -> None:
     assert film.uuid
     mock_db.delete_film(film.uuid)
     assert mock_db.get_single_film(film.uuid) is None
+
+
+@pytest.mark.order(118)
+def test_actress_detail(mock_db: Database) -> None:
+    for i in range(10):
+        mock_db.insert_film(
+            Film(
+                uuid=None,
+                title="new_film_title",
+                date_added=datetime.now(),
+                filename="new_filename",
+                watched=True,
+                state=FilmState.COMPLETE,
+                rating=None,
+                actresses=["four", "five"],
+                thumbnail=b"thumbnail",
+                poster=b"poster",
+            )
+        )
+
+    for i in range(10):
+        mock_db.insert_film(
+            Film(
+                uuid=None,
+                title="new_film_title",
+                date_added=datetime.now(),
+                filename="new_filename",
+                watched=True,
+                state=FilmState.COMPLETE,
+                rating=None,
+                actresses=["three", "five"],
+                thumbnail=b"thumbnail",
+                poster=b"poster",
+            )
+        )
+
+    result_two = mock_db.get_actress_detail(name="five")
+    result_three = mock_db.get_actress_detail(name="three")
+    assert isinstance(result_two, ActressDetail)
+    assert isinstance(result_two.name, str)
+    assert isinstance(result_two.films, list)
+    assert len(result_two.name)
+    assert len(result_two.films)
+    assert isinstance(result_two.films[0], FilmNoBytes)
+
+    assert len(result_two.films) == 20
+    assert len(result_three.films) == 10
+
+
+@pytest.mark.order(119)
+def test_get_not_transcoded_and_set_transcoding(mock_db: Database) -> None:
+    films = mock_db.get_all_films()
+    selected_films = films[:(count := 5)]
+    for i in selected_films:
+        i.state = FilmState.NOT_TRANSCODED
+        mock_db.update_film(i)
+    for i in range(count):
+        result_exists = mock_db.get_not_transcoded_and_set_transcoding()
+        assert result_exists
+        assert result_exists.state == FilmState.TRANSCODING
+    assert mock_db.get_not_transcoded_and_set_transcoding() is None
