@@ -8,5 +8,8 @@ server: check-venv
 	cd server && python __main__.py
 
 
+transcoder: check-venv
+	cd transcoder && python __main__.py
+
 database: check-venv
 	cd util/database && python database.py
