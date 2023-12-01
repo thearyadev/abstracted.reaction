@@ -1,16 +1,19 @@
-from util.database.database import Database
-import pytest
-from .database_test import mock_db
-from fastapi.testclient import TestClient
-from server.__main__ import Server
-from pathlib import Path
-from uuid import uuid4, UUID
-import httpx
 import datetime
-from util.models.film import Film, FilmState, FilmNoBytes
 from dataclasses import asdict
-import json as stdlib_json
+from pathlib import Path
+from typing import Any
+from uuid import uuid4
+
 import dotenv
+import httpx
+import pytest
+from fastapi.testclient import TestClient
+
+from server.__main__ import Server
+from util.database.database import Database
+from util.models.film import Film, FilmNoBytes, FilmState
+
+from .database_test import mock_db
 
 
 @pytest.fixture(scope="module")
@@ -100,11 +103,18 @@ def test_api_get_actress_list_no_entries(client: TestClient) -> None:
     assert not len(response.json())
 
 
-@pytest.mark.order(208)
+@pytest.mark.order(207)
 def test_api_get_serve_video_film_doesnt_exist_by_uuid(client: TestClient) -> None:
     response = client.get(f"/api/get/video?uuid={uuid4()}")
     assert response.status_code == 404
     assert response.json() == {"detail": "film not found"}
+
+
+@pytest.mark.order(207)
+def test_api_get_actress_detail_no_results(client: TestClient) -> None:
+    response = client.get("/api/get/actress_detail?name=gnome")
+    assert response.status_code == 200
+    assert response.json() == {"name": "gnome", "films": []}
 
 
 @pytest.mark.order(208)
@@ -268,3 +278,17 @@ def test_api_set_watch_status_exists(client: TestClient, mock_db: Database) -> N
     assert response.status_code == 200
     pulled_film = mock_db.get_single_film(film.uuid)
     assert pulled_film.watched == new_status
+
+
+@pytest.mark.order(216)
+def test_api_get_actress_detail(client: TestClient, mock_db: Database) -> None:
+    actresses = mock_db.get_actress_list()
+    for actress in actresses:
+        response = client.get(f"/api/get/actress_detail?name={actress}")
+        real_result = mock_db.get_actress_detail(name=actress)
+        assert response.status_code == 200
+        result: dict[str, Any] = response.json()
+        assert result
+        assert result.get("name") == actress
+
+        assert len(real_result.films) == len(result.get("films"))
