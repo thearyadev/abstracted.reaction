@@ -31,7 +31,7 @@ const translations = {
   'menu.app': 'Home',
   'menu.dashboards': 'Dashboards',
   'menu.gogo': 'Gogo',
-  'menu.start': 'Start',
+  'menu.start': 'Dashboard',
   'menu.second-menu': 'Second Menu',
   'menu.second': 'Second',
   'menu.ui': 'UI',

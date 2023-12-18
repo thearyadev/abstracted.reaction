@@ -42,7 +42,7 @@ function setSortingMethod(method) {
 
 }
 
-const Start = ({ match }) => {
+const Film_list = ({ match }) => {
   const [sortingDropdownOpen, setSortingDropdownOpen] = useState(false);
   const toggleSortingDropdown = () => setSortingDropdownOpen(!sortingDropdownOpen)
   const films = useSelector(state => state.films.films);
@@ -109,4 +109,4 @@ const Start = ({ match }) => {
     </Row>
   </>
 };
-export default Start;
+export default Film_list;

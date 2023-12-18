@@ -1,28 +1,19 @@
 import React, { Suspense } from 'react';
 import { Redirect, Route, Switch } from 'react-router-dom';
 
-const Start = React.lazy(() =>
-  import(/* webpackChunkName: "start" */ './start')
+const FilmList = React.lazy(() =>
+  import(/* webpackChunkName: "start" */ './film_list.jsx')
 );
 
-const Player = React.lazy(() =>
-  import(/* webpackChunkName: "start" */ './player')
-);
-
-const Cinema = ({ match }) => (
+const FilmsHandler = ({ match }) => (
   <Suspense fallback={<div className="loading" />}>
     <Switch>
-      {/*<Route*/}
-      {/*  path={`${match.url}/cinémathèque/:uuid`}*/}
-      {/*  render={(props) => <Player {...props} uuid={props.match.params.uuid} />}*/}
-      {/*/>*/}
       <Route
         path={`${match.url}`}
-        render={(props) => <Start {...props} />}
+        render={(props) => <FilmList {...props} />}
       />
-      {/* add another route here for the player  */}
       <Redirect to="/error" />
     </Switch>
   </Suspense>
 );
-export default Cinema;
+export default FilmsHandler;

@@ -2,14 +2,11 @@ import React, {useEffect} from 'react';
 import { Row } from 'reactstrap';
 import { Colxx, Separator } from '../../../components/common/CustomBootstrap';
 import Breadcrumb from '../../../containers/navs/Breadcrumb';
-import { Card, CardBody, CardTitle, CardHeader } from 'reactstrap';
-import { CircularProgressbar } from 'react-circular-progressbar';
 import IconCard from '../../../components/cards/IconCard';
-import GradientWithRadialProgressCard from '../../../components/cards/GradientWithRadialProgressCard';
 
 
 
-const Start = ({ match }) => {
+const Dashboard = ({ match }) => {
   const [diagnosticData, setDiagnosticData] = React.useState({
     cache_size: 35414,
     database: {
@@ -69,4 +66,4 @@ const Start = ({ match }) => {
     </>
   )
 };
-export default Start;
+export default Dashboard;

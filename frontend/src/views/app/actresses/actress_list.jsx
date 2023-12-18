@@ -6,7 +6,7 @@ import { ActressTable } from '../../../containers/ui/ReactTableCards';
 import { useSelector } from 'react-redux';
 
 
-const Start = ({ match }) => {
+const Actress_list = ({ match }) => {
   const actressesData = useSelector(state => state.actresses.actresses);
 
   return (
@@ -25,4 +25,4 @@ const Start = ({ match }) => {
     </>
   )
 };
-export default Start;
+export default Actress_list;
