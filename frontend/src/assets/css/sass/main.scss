@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css?family=Nunito:300,400,400i,600,700');
+@import './_01_mixins.scss';
+@import './_02_variables';
+@import './_03_core.scss';
+@import './_04_plugins.scss';
+@import './_05_views.scss';
+
+/** your custom css code **/
+/* 
+html {
+    background-color: $theme-color-1 !important;
+}
+*/
+
+
+.nav-item>a>i {
+    display: inline-block;
+    transition: transform 0.2s ease-in-out;
+    transform-origin: center center;
+}
+
+.nav-item:hover>a>i {
+    transform: rotate(30deg);
+}
+
+.info-pill {
+    transition: transform 0.2s ease-in-out;
+    transform-origin: center center;
+}
+
+.info-pill:hover {
+    transform: scale(1.5)
+}
+
+#side-nav {
+    // transform: translateY(50%);
+    justify-content: space-between;
+    height: 70%;
+}
+
+.sidebar .main-menu ul li a {
+    border-bottom: none;
+}
+
+.sidebar .main-menu ul li.active::after {
+    display: none;
+}
+
+.slider-container:hover>div>span>div.rc-slider-tooltip {
+    visibility: visible;
+}
+
+.slider-container>div>span>div.rc-slider-tooltip {
+    visibility: hidden;
+}
+
+.video-listing-card {
+    visibility: hidden;
+}
+
+.of-style-none {
+    scrollbar-width: none;
+    /* hide scrollbar for Firefox */
+    -ms-overflow-style: none;
+    /* hide scrollbar for Internet Explorer 10+ */
+    border-radius: .25rem;
+}
+
+.of-style-none::-webkit-scrollbar {
+    width: 0 !important;
+    /* hide scrollbar for Chrome, Safari, and Opera */
+}
+
+img {
+    transition: opacity 0.5s ease-in-out;
+}
+
+.fCountIndicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 15px;
+    background-color: #333;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.fCountIndicator:hover{
+    cursor: pointer;
+    opacity: 0.8;
+}
+img {
+    aspect-ratio: 16/9;
+    object-fit: cover;
+}
+video{
+    aspect-ratio: 16/9;
+}
