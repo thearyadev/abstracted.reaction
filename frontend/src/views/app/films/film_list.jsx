@@ -6,6 +6,8 @@ import ListPageListing from '../../../containers/pages/ListPageListing';
 import { DropdownToggle, DropdownItem, DropdownMenu, ButtonDropdown } from 'reactstrap';
 import { useState,  } from 'react';
 import { useSelector,  } from 'react-redux';
+import {FilmContext} from "../../../providers/filmProvider.jsx";
+import {useContext} from "react";
 
 const sortingOptions = [
   { value: "DANF", label: "Date Added (Newest First)" },
@@ -43,9 +45,11 @@ function setSortingMethod(method) {
 }
 
 const Film_list = ({ match }) => {
+
+  const gnomes = useContext(FilmContext)
+  const films = []
   const [sortingDropdownOpen, setSortingDropdownOpen] = useState(false);
   const toggleSortingDropdown = () => setSortingDropdownOpen(!sortingDropdownOpen)
-  const films = useSelector(state => state.films.films);
   setTimeout(async () => { document.querySelectorAll(".video-listing-card").forEach(element => { element.style.visibility = "visible" }) }, 1500)
   return <>
 
@@ -90,6 +94,7 @@ const Film_list = ({ match }) => {
     </Row>
 
     <Row>
+      <h1>{gnomes}</h1>
       <Colxx xxs="12" className="mb-4">
 
         {/* this is the video library  */}

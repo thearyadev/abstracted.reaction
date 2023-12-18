@@ -12,7 +12,8 @@ import ColorSwitcher from './components/common/ColorSwitcher.jsx';
 import { NotificationContainer } from './components/common/react-notifications';
 import { isMultiColorActive, adminRoot } from './constants/defaultValues';
 import { getDirection } from './helpers/Utils';
-import EnLang from './lang/entries/en-US'
+
+import { FilmProvider } from './providers/filmProvider.jsx'
 
 const ViewApp = React.lazy(() =>
   import(/* webpackChunkName: "views-app" */ './views/app')
@@ -50,32 +51,36 @@ class App extends React.Component {
           locale={currentAppLocale.locale }
           messages={currentAppLocale.messages}
         >
-          <>
-            <NotificationContainer />
-            {isMultiColorActive && <ColorSwitcher />}
-            <Suspense fallback={<div className="loading" />}>
-              <Router>
-                <Switch>
-                  <Route
-                    path={adminRoot}
-                    render={(props) => <ViewApp {...props} />}
-                  />
-                  <Route
-                    path="/error"
-                    exact
-                    render={(props) => <ViewError {...props} />}
-                  />
-                  {/* redirects / to films page */}
+          <FilmProvider>
 
-                  <Redirect exact from="/" to={`${adminRoot}/accueil`} />
+              <>
+                <NotificationContainer />
+                {isMultiColorActive && <ColorSwitcher />}
+                <Suspense fallback={<div className="loading" />}>
+                  <Router>
+                    <Switch>
+                      <Route
+                          path={adminRoot}
+                          render={(props) => <ViewApp {...props} />}
+                      />
+                      <Route
+                          path="/error"
+                          exact
+                          render={(props) => <ViewError {...props} />}
+                      />
+                      {/* redirects / to films page */}
 
-                  <Redirect to="/error" />
+                      <Redirect exact from="/" to={`${adminRoot}/accueil`} />
 
-                  <Redirect to="/error" />
-                </Switch>
-              </Router>
-            </Suspense>
-          </>
+                      <Redirect to="/error" />
+
+                      <Redirect to="/error" />
+                    </Switch>
+                  </Router>
+                </Suspense>
+              </>
+          </FilmProvider>
+
         </IntlProvider>
       </div>
     );
