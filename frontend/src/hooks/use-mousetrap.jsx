@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-expressions */
-import mousetrap from 'mousetrap';
-import { useEffect, useRef } from 'react';
+import mousetrap from "mousetrap";
+import { useEffect, useRef } from "react";
 
 /**
  * Use mousetrap hook
@@ -14,7 +14,7 @@ export default (handlerKey, handlerCallback) => {
 
   useEffect(() => {
     mousetrap.bind(handlerKey, (evt, combo) => {
-      typeof actionRef.current === 'function' && actionRef.current(evt, combo);
+      typeof actionRef.current === "function" && actionRef.current(evt, combo);
       evt.preventDefault();
     });
     return () => {

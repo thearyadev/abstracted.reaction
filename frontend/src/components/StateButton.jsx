@@ -1,28 +1,28 @@
-import React, { useState } from 'react';
-import { Button, Popover, PopoverBody } from 'reactstrap';
-import classnames from 'classnames';
+import React, { useState } from "react";
+import { Button, Popover, PopoverBody } from "reactstrap";
+import classnames from "classnames";
 
 const StateButton = ({ id, className, color, children, onClick }) => {
-  const [status, setStatus] = useState('default');
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState("default");
+  const [message, setMessage] = useState("");
   const [messageShow, setMessageShow] = useState(false);
 
   const handleOnClick = () => {
-    setStatus('processing');
+    setStatus("processing");
 
     onClick()
       .then((res) => {
         setMessage(res);
-        setStatus('success');
+        setStatus("success");
       })
       .catch((err) => {
         setMessage(err);
-        setStatus('fail');
+        setStatus("fail");
       })
       .finally(() => {
         setMessageShow(true);
         setTimeout(() => {
-          setStatus('default');
+          setStatus("default");
           setMessageShow(false);
         }, 3000);
       });
@@ -33,13 +33,13 @@ const StateButton = ({ id, className, color, children, onClick }) => {
       <Button
         id={id}
         className={`btn-multiple-state  ${className}  ${classnames({
-          'show-spinner': status === 'processing',
-          'show-success': status === 'success',
-          'show-fail': status === 'fail',
+          "show-spinner": status === "processing",
+          "show-success": status === "success",
+          "show-fail": status === "fail",
         })}`}
         color={color}
         onClick={handleOnClick}
-        disabled={status !== 'default'}
+        disabled={status !== "default"}
       >
         <Popover placement="top" isOpen={messageShow} target={id}>
           <PopoverBody>{message}</PopoverBody>

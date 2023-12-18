@@ -1,20 +1,23 @@
 import React, { Suspense } from 'react';
-import { Route, withRouter, Switch, Redirect } from 'react-router-dom';
+import { Route, withRouter, Switch } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { useSelector } from 'react-redux';
 import AppLayout from '../../layout/AppLayout';
-import { adminRoot } from '../../constants/defaultValues';
 import {useState, useEffect} from 'react';
 
 const Films = React.lazy(() =>
-  import(/* webpackChunkName: "viwes-gogo" */ './films')
+  import('./films')
 );
 const Actresses = React.lazy(() =>
-  import(/* webpackChunkName: "viwes-second-menu" */ './actresses')
+  import('./actresses')
 );
 
 const Dashboard = React.lazy(() =>
-  import(/* webpackChunkName: "viwes-second-menu" */ './dashboard')
+  import('./dashboard')
+);
+
+const Import = React.lazy( () =>
+  import('./import/index.jsx')
 );
 
 const App = ({ match }) => {
@@ -38,7 +41,11 @@ const App = ({ match }) => {
           <Suspense fallback={<div className="loading" />}>
             <Switch>
               {/* redirects / to /<endpoint> */}
-              <Route 
+
+
+
+
+              <Route
                 path={`${match.url}/dashboard`}
                 render={(props) => <Dashboard {...props} />}
               />
@@ -50,6 +57,14 @@ const App = ({ match }) => {
               path={`${match.url}/actresses`}
               render={(props) => <Actresses {...props} />}
               />
+              <Route
+                  path={`${match.url}/import`}
+                  render={(props) => <Import {...props} /> }
+              />
+
+
+
+
               {/* if no route is matched, go to error.  */}
             </Switch>
           </Suspense>

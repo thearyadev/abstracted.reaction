@@ -1,7 +1,7 @@
 // import { addLocaleData } from 'react-intl';
-import enLang from './entries/en-US';
-import esLang from './entries/es-ES';
-import enRtlLang from './entries/en-US-rtl';
+import enLang from "./entries/en-US";
+import esLang from "./entries/es-ES";
+import enRtlLang from "./entries/en-US-rtl";
 
 // import {createIntl, createIntlCache, RawIntlProvider} from 'react-intl'
 

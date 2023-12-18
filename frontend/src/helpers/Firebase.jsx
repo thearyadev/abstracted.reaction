@@ -1,8 +1,8 @@
-import firebase from 'firebase/app';
-import 'firebase/auth';
-import 'firebase/database';
+import firebase from "firebase/app";
+import "firebase/auth";
+import "firebase/database";
 
-import { firebaseConfig } from '../constants/defaultValues';
+import { firebaseConfig } from "../constants/defaultValues";
 
 firebase.initializeApp(firebaseConfig);
 

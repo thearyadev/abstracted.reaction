@@ -6,7 +6,7 @@ import {
   localeOptions,
   themeColorStorageKey,
   themeRadiusStorageKey,
-} from '../constants/defaultValues';
+} from "../constants/defaultValues";
 
 export const mapOrder = (array, order, key) => {
   // eslint-disable-next-line func-names
@@ -45,30 +45,30 @@ export const getDirection = () => {
   let direction = defaultDirection;
 
   try {
-    if (localStorage.getItem('direction')) {
-      const localValue = localStorage.getItem('direction');
-      if (localValue === 'rtl' || localValue === 'ltr') {
+    if (localStorage.getItem("direction")) {
+      const localValue = localStorage.getItem("direction");
+      if (localValue === "rtl" || localValue === "ltr") {
         direction = localValue;
       }
     }
   } catch (error) {
-    console.log('>>>>: src/helpers/Utils.js : getDirection -> error', error);
+    console.log(">>>>: src/helpers/Utils.js : getDirection -> error", error);
     direction = defaultDirection;
   }
   return {
     direction,
-    isRtl: direction === 'rtl',
+    isRtl: direction === "rtl",
   };
 };
 export const setDirection = (localValue) => {
-  let direction = 'ltr';
-  if (localValue === 'rtl' || localValue === 'ltr') {
+  let direction = "ltr";
+  if (localValue === "rtl" || localValue === "ltr") {
     direction = localValue;
   }
   try {
-    localStorage.setItem('direction', direction);
+    localStorage.setItem("direction", direction);
   } catch (error) {
-    console.log('>>>>: src/helpers/Utils.js : setDirection -> error', error);
+    console.log(">>>>: src/helpers/Utils.js : setDirection -> error", error);
   }
 };
 
@@ -79,7 +79,7 @@ export const getCurrentColor = () => {
       currentColor = localStorage.getItem(themeColorStorageKey);
     }
   } catch (error) {
-    console.log('>>>>: src/helpers/Utils.js : getCurrentColor -> error', error);
+    console.log(">>>>: src/helpers/Utils.js : getCurrentColor -> error", error);
     currentColor = defaultColor;
   }
   return currentColor;
@@ -89,22 +89,22 @@ export const setCurrentColor = (color) => {
   try {
     localStorage.setItem(themeColorStorageKey, color);
   } catch (error) {
-    console.log('>>>>: src/helpers/Utils.js : setCurrentColor -> error', error);
+    console.log(">>>>: src/helpers/Utils.js : setCurrentColor -> error", error);
   }
 };
 
 export const getCurrentRadius = () => {
-  let currentRadius = 'rounded';
+  let currentRadius = "rounded";
   try {
     if (localStorage.getItem(themeRadiusStorageKey)) {
       currentRadius = localStorage.getItem(themeRadiusStorageKey);
     }
   } catch (error) {
     console.log(
-      '>>>>: src/helpers/Utils.js : getCurrentRadius -> error',
-      error
+      ">>>>: src/helpers/Utils.js : getCurrentRadius -> error",
+      error,
     );
-    currentRadius = 'rounded';
+    currentRadius = "rounded";
   }
   return currentRadius;
 };
@@ -113,8 +113,8 @@ export const setCurrentRadius = (radius) => {
     localStorage.setItem(themeRadiusStorageKey, radius);
   } catch (error) {
     console.log(
-      '>>>>: src/helpers/Utils.js : setCurrentRadius -> error',
-      error
+      ">>>>: src/helpers/Utils.js : setCurrentRadius -> error",
+      error,
     );
   }
 };
@@ -123,16 +123,16 @@ export const getCurrentLanguage = () => {
   let language;
   try {
     language =
-      localStorage.getItem('currentLanguage') &&
+      localStorage.getItem("currentLanguage") &&
       localeOptions.filter(
-        (x) => x.id === localStorage.getItem('currentLanguage')
+        (x) => x.id === localStorage.getItem("currentLanguage"),
       ).length > 0
-        ? localStorage.getItem('currentLanguage')
+        ? localStorage.getItem("currentLanguage")
         : defaultLocale;
   } catch (error) {
     console.log(
-      '>>>>: src/helpers/Utils.js : getCurrentLanguage -> error',
-      error
+      ">>>>: src/helpers/Utils.js : getCurrentLanguage -> error",
+      error,
     );
     language = defaultLocale;
   }
@@ -140,11 +140,11 @@ export const getCurrentLanguage = () => {
 };
 export const setCurrentLanguage = (locale) => {
   try {
-    localStorage.setItem('currentLanguage', locale);
+    localStorage.setItem("currentLanguage", locale);
   } catch (error) {
     console.log(
-      '>>>>: src/helpers/Utils.js : setCurrentLanguage -> error',
-      error
+      ">>>>: src/helpers/Utils.js : setCurrentLanguage -> error",
+      error,
     );
   }
 };
@@ -153,11 +153,11 @@ export const getCurrentUser = () => {
   let user;
   try {
     user =
-      localStorage.getItem('gogo_current_user') != null
-        ? JSON.parse(localStorage.getItem('gogo_current_user'))
+      localStorage.getItem("gogo_current_user") != null
+        ? JSON.parse(localStorage.getItem("gogo_current_user"))
         : null;
   } catch (error) {
-    console.log('>>>>: src/helpers/Utils.js  : getCurrentUser -> error', error);
+    console.log(">>>>: src/helpers/Utils.js  : getCurrentUser -> error", error);
     user = null;
   }
   return user;
@@ -166,11 +166,11 @@ export const getCurrentUser = () => {
 export const setCurrentUser = (user) => {
   try {
     if (user) {
-      localStorage.setItem('gogo_current_user', JSON.stringify(user));
+      localStorage.setItem("gogo_current_user", JSON.stringify(user));
     } else {
-      localStorage.removeItem('gogo_current_user');
+      localStorage.removeItem("gogo_current_user");
     }
   } catch (error) {
-    console.log('>>>>: src/helpers/Utils.js : setCurrentUser -> error', error);
+    console.log(">>>>: src/helpers/Utils.js : setCurrentUser -> error", error);
   }
 };

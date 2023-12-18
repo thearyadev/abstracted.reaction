@@ -19,7 +19,7 @@ const Actress_list = ({ match }) => {
       </Row>
       <Row>
         <Colxx xxs="12" className="mb-4">
-          <ActressTable data={actressesData} />
+      <h1>:3</h1>
         </Colxx>
       </Row>
     </>

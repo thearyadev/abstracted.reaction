@@ -4,5 +4,5 @@ export {
   changeDefaultClassnames,
   changeSelectedMenuHasSubItems,
   clickOnMobileMenu,
-} from './menu/actions';
-export { changeLocale } from './settings/actions';
+} from "./menu/actions";
+export { changeLocale } from "./settings/actions";

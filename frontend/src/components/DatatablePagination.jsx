@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable react/no-array-index-key */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Pagination,
   PaginationItem,
@@ -9,7 +9,7 @@ import {
   DropdownMenu,
   DropdownToggle,
   DropdownItem,
-} from 'reactstrap';
+} from "reactstrap";
 
 const DataTablePagination = ({
   page,
@@ -81,7 +81,7 @@ const DataTablePagination = ({
       pageButtons.push(
         <PaginationItem key={i} active={active}>
           <PaginationLink onClick={() => pageClick(i)}>{i + 1}</PaginationLink>
-        </PaginationItem>
+        </PaginationItem>,
       );
     }
     return pageButtons;
@@ -93,7 +93,7 @@ const DataTablePagination = ({
       pageNumbers.push(
         <DropdownItem key={i} onClick={() => changePage(i)}>
           {i + 1}
-        </DropdownItem>
+        </DropdownItem>,
       );
     }
     return pageNumbers;
@@ -122,7 +122,7 @@ const DataTablePagination = ({
           listClassName="justify-content-center"
           aria-label="Page navigation example"
         >
-          <PaginationItem className={`${!canPrevious && 'disabled'}`}>
+          <PaginationItem className={`${!canPrevious && "disabled"}`}>
             <PaginationLink
               className="prev"
               onClick={() => {
@@ -136,7 +136,7 @@ const DataTablePagination = ({
           </PaginationItem>
 
           {renderPages()}
-          <PaginationItem className={`${!canNext && 'disabled'}`}>
+          <PaginationItem className={`${!canNext && "disabled"}`}>
             <PaginationLink
               className="next"
               onClick={() => {

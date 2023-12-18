@@ -1,25 +1,25 @@
 /* eslint-disable jsx-a11y/label-has-for */
 /* eslint-disable jsx-a11y/label-has-associated-control */
-import React from 'react';
-import moment from 'moment';
+import React from "react";
+import moment from "moment";
 
 const CalendarToolbar = (toolbar) => {
   const goToBack = () => {
-    toolbar.onNavigate('PREV');
+    toolbar.onNavigate("PREV");
   };
   const goToNext = () => {
-    toolbar.onNavigate('NEXT');
+    toolbar.onNavigate("NEXT");
   };
   const goToCurrent = () => {
-    toolbar.onNavigate('TODAY');
+    toolbar.onNavigate("TODAY");
   };
 
   const label = () => {
     const date = moment(toolbar.date);
     return (
       <span>
-        <span>{date.format('MMMM')} </span>
-        <span> {date.format('YYYY')}</span>
+        <span>{date.format("MMMM")} </span>
+        <span> {date.format("YYYY")}</span>
       </span>
     );
   };

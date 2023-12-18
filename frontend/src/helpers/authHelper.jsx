@@ -1,9 +1,9 @@
-import React from 'react';
-import { Route, Redirect } from 'react-router-dom';
+import React from "react";
+import { Route, Redirect } from "react-router-dom";
 // eslint-disable-next-line import/no-cycle
-import { getCurrentUser } from './Utils';
+import { getCurrentUser } from "./Utils";
 // eslint-disable-next-line import/no-cycle
-import { isAuthGuardActive } from '../constants/defaultValues';
+import { isAuthGuardActive } from "../constants/defaultValues";
 
 const ProtectedRoute = ({
   component: Component,
@@ -21,7 +21,7 @@ const ProtectedRoute = ({
           return (
             <Redirect
               to={{
-                pathname: '/unauthorized',
+                pathname: "/unauthorized",
                 state: { from: props.location },
               }}
             />
@@ -32,7 +32,7 @@ const ProtectedRoute = ({
       return (
         <Redirect
           to={{
-            pathname: '/user/login',
+            pathname: "/user/login",
             state: { from: props.location },
           }}
         />

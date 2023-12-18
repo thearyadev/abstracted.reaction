@@ -32,27 +32,27 @@
 //   return store;
 // }
 
-import { createStore, applyMiddleware, compose } from 'redux';
-import createSagaMiddleware from 'redux-saga';
-import thunk from 'redux-thunk';
-import reducers from './reducers';
-import sagas from './sagas';
+import { createStore, applyMiddleware, compose } from "redux";
+import createSagaMiddleware from "redux-saga";
+import thunk from "redux-thunk";
+import reducers from "./reducers";
+import sagas from "./sagas";
 
 const sagaMiddleware = createSagaMiddleware();
 const middlewares = [sagaMiddleware, thunk];
 
 export function configureStore(initialState) {
   const store = createStore(
-      reducers,
-      initialState,
-      compose(applyMiddleware(...middlewares)),
+    reducers,
+    initialState,
+    compose(applyMiddleware(...middlewares)),
   );
 
   sagaMiddleware.run(sagas);
 
   // Vite-specific HMR code
   if (import.meta.hot) {
-    import.meta.hot.accept('./reducers', (newReducers) => {
+    import.meta.hot.accept("./reducers", (newReducers) => {
       store.replaceReducer(newReducers.default);
     });
   }
