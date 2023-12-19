@@ -11,7 +11,6 @@ import classnames from 'classnames';
 import IntlMessages from '../../helpers/IntlMessages';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom';
 
-import products from '../../data/products';
 
 function Table({ columns, data, divided = false, defaultPageSize = 999999999999 }) {
   const {
@@ -37,7 +36,7 @@ function Table({ columns, data, divided = false, defaultPageSize = 999999999999 
   );
   const history = useHistory();
   const Redirect = (url) => {
-    history.push(url);
+    history.push(`actresses/${url}`);
   }
 
   return (
@@ -199,21 +198,9 @@ export const ActressTable = ({ data }) => {
   const cols = React.useMemo(
     () => [
       {
-        Header: 'nom',
+        Header: 'name',
         accessor: 'name',
         cellClass: 'list-item-heading w-40',
-        Cell: (props) => <>{props.value}</>,
-      },
-      {
-        Header: 'nombre de films',
-        accessor: 'film_count',
-        cellClass: 'text-muted w-10',
-        Cell: (props) => <>{props.value}</>,
-      },
-      {
-        Header: 'évaluation moyenne',
-        accessor: 'average',
-        cellClass: 'text-muted w-10',
         Cell: (props) => <>{props.value}</>,
       },
     ],
