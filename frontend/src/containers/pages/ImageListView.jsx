@@ -21,11 +21,7 @@ import { Container } from 'reactstrap';
 const ImageListView = ({ film, isSelect, selectFunc }) => {
   const location = useLocation();
   const currentPathname = location.pathname;
-  let type = "film"
-  if (film.date_added === undefined) {
-    type = "indexed"
-  }
-  if (type === "film") {
+
     return (
       <Colxx sm="6" lg="4" xl="3" className="mb-3" key={film.uuid}>
         <Card
@@ -38,7 +34,7 @@ const ImageListView = ({ film, isSelect, selectFunc }) => {
               <LazyLoad height={200} offset={1200} throttle={100}>
 
 
-                <CardImg top alt={film.title} src={`/api/thumbnail?uuid=${film.uuid}`}/>
+                <CardImg top alt={film.title} src={import.meta.env.DEV ? `/assets/img/films/${film.uuid}.png` : `/api/thumbnail?uuid=${film.uuid}`} />
 
               </LazyLoad>
               <Badge
@@ -60,8 +56,8 @@ const ImageListView = ({ film, isSelect, selectFunc }) => {
                       {film.date_added}
                     </CardText>
                     <div className="d-flex align-items-center">
-                      <span className="font-weight-bold mr-2">{film.average !== 0 ? film.average : '-'}</span>
-                      {film.average !== 0 ? <span className='simple-icon-star' /> : null}
+                      <span className="font-weight-bold mr-2">{film.rating.average !== 0 ? film.rating.average : '-'}</span>
+                      {film.rating.average !== 0 ? <span className='simple-icon-star' /> : null}
                     </div>
                   </div>
                 </Colxx>
@@ -72,54 +68,7 @@ const ImageListView = ({ film, isSelect, selectFunc }) => {
         </Card>
       </Colxx>
     );
-  }
-  return (
-    <Colxx sm="6" lg="4" xl="3" className="mb-3" key={film.uuid}>
-      <Card
-        onClick={(event) => { selectFunc(film.uuid) }}
-        className='video-listing-card'
-      >
 
-        <div className="position-relative">
-
-          <LazyLoad height={200} offset={1200} throttle={100}>
-
-
-            <CardImg top alt={film.title} src={`/api/indexed_thumbnail?uuid=${film.uuid}`} />
-
-          </LazyLoad>
-          <Badge
-            color="success"
-            pill
-            className="position-absolute badge-top-left info-pill"
-          >
-            {isSelect ? "SELECTED" : null}
-          </Badge>
-
-        </div>
-        <CardBody className="p-3 pb-0">
-          <Row>
-            <Colxx xxs="12" className="mb-3">
-              <CardText className="text-muted text-small mb-0 font-weight-light text-truncate">{film.actresses.join(", ")}</CardText>
-              <CardSubtitle className="font-weight-bold pt-3 text-truncate">{film.title}</CardSubtitle>
-              <Badge
-                color="info"
-                pill
-                className="position-absolute badge-top-right info-pill "
-                onClick={(event) => { window.open(`https://hqporner.com/hdporn/${film.film_id}.html`, "_blank") }}
-              >
-                <span className='iconsminds-link-2' />
-              </Badge>
-
-            </Colxx>
-
-          </Row>
-
-        </CardBody>
-
-      </Card>
-    </Colxx>
-  );
 
 };
 
