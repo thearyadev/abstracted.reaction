@@ -5,8 +5,7 @@ import Breadcrumb from '../../../containers/navs/Breadcrumb';
 import ListPageListing from '../../../containers/pages/ListPageListing';
 import { DropdownToggle, DropdownItem, DropdownMenu, ButtonDropdown } from 'reactstrap';
 import { useState,  } from 'react';
-import { useSelector,  } from 'react-redux';
-import {FilmContext} from "../../../providers/filmProvider.jsx";
+import {FilmContext} from "../../../providers/filmsProvider.jsx";
 import {useContext} from "react";
 
 const sortingOptions = [
@@ -16,7 +15,6 @@ const sortingOptions = [
   { value: "W", label: "Watched" },
   { value: "RLTH", label: "Rating (Low to High)" },
   { value: "RHTL", label: "Rating (High to Low)" },
-  { value: "DL", label: "Downloading" }
 ]
 
 function sortFilms(filmArray) {
@@ -32,8 +30,6 @@ function sortFilms(filmArray) {
       return filmArray.filter(item => item.watched !== false && item.state === 'COMPLETE').sort((a, b) => b.average - a.average)
     case "RLTH":
       return filmArray.filter(item => item.watched !== false && item.state === 'COMPLETE').sort((a, b) => a.average - b.average)
-    case "DL":
-      return filmArray.filter(item => item.state !== 'COMPLETE').sort((a, b) => new Date(b.date_added) - new Date(a.date_added))
     default:
       return filmArray.sort((a, b) => new Date(b.date_added) - new Date(a.date_added))
   }
@@ -45,9 +41,9 @@ function setSortingMethod(method) {
 }
 
 const Film_list = ({ match }) => {
-
-  const gnomes = useContext(FilmContext)
-  const films = []
+  const films = useContext(FilmContext)
+  // console.log(films)
+  // const films = []
   const [sortingDropdownOpen, setSortingDropdownOpen] = useState(false);
   const toggleSortingDropdown = () => setSortingDropdownOpen(!sortingDropdownOpen)
   setTimeout(async () => { document.querySelectorAll(".video-listing-card").forEach(element => { element.style.visibility = "visible" }) }, 1500)
@@ -94,10 +90,12 @@ const Film_list = ({ match }) => {
     </Row>
 
     <Row>
-      <h1>{gnomes}</h1>
       <Colxx xxs="12" className="mb-4">
 
         {/* this is the video library  */}
+
+
+
         <ListPageListing
           items={sortFilms([...films])}
           displayMode={"imagelist"}
@@ -107,8 +105,6 @@ const Film_list = ({ match }) => {
           totalPage={10}
           onContextMenuClick={() => { }}
           onChangePage={() => { }}
-
-
         />
       </Colxx>
     </Row>
