@@ -1,35 +1,13 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useContext} from 'react';
 import { Row } from 'reactstrap';
 import { Colxx, Separator } from '../../../components/common/CustomBootstrap';
 import Breadcrumb from '../../../containers/navs/Breadcrumb';
 import IconCard from '../../../components/cards/IconCard';
-
+import {DiagnosticContext} from "../../../providers/diagnosticProvider.jsx";
 
 
 const Dashboard = ({ match }) => {
-  const [diagnosticData, setDiagnosticData] = React.useState({
-    cache_size: 35414,
-    database: {
-      size: 500,
-      query_time: 12,
-    },
-    disk: {
-      total: 1000,
-      used: 250,
-      free: 750
-    }
-  });
-  const [loading, setLoading] = React.useState(true);
-
-  useEffect(() => {
-    setDiagnosticData(diagnosticData) // replace with request
-    setLoading(false)
-  }, []);
-
-  if (loading){
-    return <div className="loading"></div>
-
-  }
+  const diagnosticData = useContext(DiagnosticContext)
   return (
     <>
       <Row>
