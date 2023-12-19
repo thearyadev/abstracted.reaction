@@ -13,7 +13,9 @@ import { NotificationContainer } from './components/common/react-notifications';
 import { isMultiColorActive, adminRoot } from './constants/defaultValues';
 import { getDirection } from './helpers/Utils';
 
-import { FilmProvider } from './providers/filmProvider.jsx'
+import { FilmsProvider } from './providers/filmsProvider.jsx'
+import {DiagnosticProvider} from "./providers/diagnosticProvider.jsx";
+import {ActressesProvider} from "./providers/actressesProvider.jsx";
 
 const ViewApp = React.lazy(() =>
   import(/* webpackChunkName: "views-app" */ './views/app')
@@ -27,7 +29,6 @@ class App extends React.Component {
 
   constructor(props) {
     super(props);
-    const completed = false;
 
 
     const direction = getDirection();
@@ -51,8 +52,9 @@ class App extends React.Component {
           locale={currentAppLocale.locale }
           messages={currentAppLocale.messages}
         >
-          <FilmProvider>
-
+          <FilmsProvider>
+          <DiagnosticProvider>
+          <ActressesProvider>
               <>
                 <NotificationContainer />
                 {isMultiColorActive && <ColorSwitcher />}
@@ -68,9 +70,8 @@ class App extends React.Component {
                           exact
                           render={(props) => <ViewError {...props} />}
                       />
-                      {/* redirects / to films page */}
 
-                      <Redirect exact from="/" to={`${adminRoot}/accueil`} />
+                      <Redirect exact from="/" to={`${adminRoot}/dashboard`} />
 
                       <Redirect to="/error" />
 
@@ -79,7 +80,9 @@ class App extends React.Component {
                   </Router>
                 </Suspense>
               </>
-          </FilmProvider>
+          </ActressesProvider>
+          </DiagnosticProvider>
+          </FilmsProvider>
 
         </IntlProvider>
       </div>
