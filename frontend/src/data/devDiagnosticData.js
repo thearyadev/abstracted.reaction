@@ -1,4 +1,4 @@
-const demoDiagnosticData = {
+export const devDiagnosticData = {
   cache_size: 35414,
   database: {
     size: 500,
@@ -10,5 +10,3 @@ const demoDiagnosticData = {
     free: 750,
   },
 };
-
-export default demoDiagnosticData;
