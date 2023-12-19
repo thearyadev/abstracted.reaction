@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
+import { devFilmData } from "../data/devFilmData.js";
 
 export const FilmContext = React.createContext([]);
 
-export const FilmProvider = ({ children }) => {
+export const FilmsProvider = ({ children }) => {
   const [films, setFilms] = useState([]);
   useEffect(() => {
     const fetchFilms = async () => {
       // do request
-      setFilms([]);
+
+      if (import.meta.env.DEV) {
+        setFilms(devFilmData);
+      } else {
+        setFilms("Prod");
+      }
     };
     fetchFilms();
     const interval = setInterval(fetchFilms, 3000);
