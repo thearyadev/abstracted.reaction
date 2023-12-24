@@ -1,3 +1,10 @@
+import {devActressesData} from "./devActressesData.js";
+
+function getRandomActresses() {
+  const shuffled = devActressesData.sort( () => 0.5 - Math.random())
+  return shuffled.slice(0, 3)
+}
+
 export const devFilmData = [
   {
     uuid: "1",
@@ -16,7 +23,7 @@ export const devFilmData = [
       face: 10,
       rearview: 10,
     },
-    actresses: ["Jane Rogers", "Scarlet Skies"],
+    actresses: getRandomActresses(),
   },
 
   {
@@ -36,7 +43,7 @@ export const devFilmData = [
       face: 10,
       rearview: 10,
     },
-    actresses: ["Jane Rogers", "Actress 2"],
+    actresses: getRandomActresses(),
   },
 
   {
@@ -56,7 +63,7 @@ export const devFilmData = [
       face: 10,
       rearview: 10,
     },
-    actresses: ["Jane Rogers", "Actress 2"],
+    actresses: getRandomActresses(),
   },
   {
     uuid: "4",
@@ -75,7 +82,7 @@ export const devFilmData = [
       face: 10,
       rearview: 10,
     },
-    actresses: ["Actress 1", "Actress 2"],
+    actresses: getRandomActresses(),
   },
   {
     uuid: "5",
@@ -94,7 +101,7 @@ export const devFilmData = [
       face: 10,
       rearview: 10,
     },
-    actresses: ["Actress 1", "Actress 2"],
+    actresses: getRandomActresses(),
   },
   {
     uuid: "6",
@@ -113,7 +120,7 @@ export const devFilmData = [
       face: 10,
       rearview: 10,
     },
-    actresses: ["Actress 1", "Actress 2"],
+    actresses: getRandomActresses(),
   },
   {
     uuid: "7",
@@ -132,6 +139,6 @@ export const devFilmData = [
       face: 10,
       rearview: 10,
     },
-    actresses: ["Actress 1", "Actress 2"],
+    actresses: getRandomActresses(),
   },
 ];
