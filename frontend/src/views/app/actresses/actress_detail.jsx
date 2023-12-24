@@ -26,10 +26,11 @@ const ActressDetail = ({ match, actress }) => {
     const [ethnicity, setEthnicity] = useState(undefined)
     const [nationality, setNationality] = useState(undefined)
     const [height, setHeight] = useState(undefined)
-    const [about, setAbout] = useState(undefined)
     const [imageUrl, setImageUrl] = useState(undefined)
     const [hairColor, setHairColor] = useState(undefined)
 
+    const [nothingFound, setNothingFound] = useState(false)
+    
     const [loading, setLoading] = useState(true)
     useEffect(() => {
         fetch(`https://api.metadataapi.net/performers?q=${actress}`, {
@@ -40,7 +41,23 @@ const ActressDetail = ({ match, actress }) => {
         })
             .then(response => response.json())
             .then(data => {
-                fetch(`https://api.metadataapi.net/performers/${data.data[0].id}`, {
+                if (data.data.length === 0){
+                    throw Error()
+                }
+                let target_performer_id = null;
+                data.data.forEach((performer) => {
+                    if (performer.name === actress){
+                        target_performer_id = performer.id
+                    }
+                })
+
+
+                if (target_performer_id === null){
+                    target_performer_id = data.data[0].id
+                }
+
+
+                fetch(`https://api.metadataapi.net/performers/${target_performer_id}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${api_key}`
@@ -53,7 +70,6 @@ const ActressDetail = ({ match, actress }) => {
                         setBirthday(data.data?.extras?.birthday)
                         setEthnicity(data.data?.extras?.ethnicity)
                         setNationality(data.data?.extras?.nationality)
-                        setAbout(data.data?.bio)
                         setHeight(data.data?.extras?.height)
                         setHairColor(data.data?.extras?.hair_colour)
                         const nonZeroAverageFilms = films.filter( film => film.rating.average !== 0)
@@ -63,6 +79,10 @@ const ActressDetail = ({ match, actress }) => {
                         img.onerror = () => {setLoading(false)}
                     })
 
+            })
+            .catch(error => {
+                setNothingFound(true)
+                setLoading(false)
             })
     }, []);
 
@@ -92,27 +112,14 @@ const ActressDetail = ({ match, actress }) => {
                         <Colxx xxs="12" lg="3" className="mb-4 col-left">
                             <Card className="mb-4 h-100">
 
-                                <CardImg
-                                    style={{objectFit: "cover", objectPosition: "left top"}}
-                                    className="card-img-top h-100"
-                                    src={imageUrl}
+                                <img
+                                    style={{objectFit: "cover", objectPosition: "center top"}}
+                                    className="card-img-top h-100 actress-detail-image"
+                                    src={imageUrl ? imageUrl : "/assets/img/actress/no-image.png"}
 
                                 />
 
                                 <CardBody>
-                                    {
-                                        about && (
-                                            <>
-                                                <p className="text-muted text-small mb-2">
-                                                    about
-                                                </p>
-                                                <p className="mb-3">
-                                                    {about}
-                                                </p>
-                                            </>
-                                        )
-                                    }
-
                                     {
                                         nationality && (
                                         <>
@@ -167,15 +174,37 @@ const ActressDetail = ({ match, actress }) => {
                                         )
 
                                     }
+                                    {
+                                        ethnicity && (
+                                            <>
+                                                <p className="text-muted text-small mb-2">
+                                                    ethnicity
+                                                </p>
+                                                <p className="mb-3">{ethnicity}</p>
 
+                                            </>
+
+                                        )
+
+                                    }
                                     <div className="social-icons">
                                         <ul className="list-unstyled list-inline">
                                             <li className="list-inline-item">
-                                                <NavLink to="#" location={{}}>
+                                                <a href={`https://pornhub.com/video/search?search=${actress}`} target="_blank" rel="noopener noreferrer">
                                                     <i className="simple-icon-social-youtube" />
-                                                </NavLink>
+                                                </a>
+
                                             </li>
+                                            <li className="list-inline-item">
+                                                <a href={`https://google.com/search?q=${actress} porn`} target="_blank" rel="noopener noreferrer">
+                                                    <i className="simple-icon-social-google" />
+                                                </a>
+
+                                            </li>
+
+
                                         </ul>
+
                                     </div>
                                 </CardBody>
                             </Card>
@@ -191,7 +220,7 @@ const ActressDetail = ({ match, actress }) => {
                                             lg="6"
                                             xl="4"
                                             className="mb-4"
-                                            key={`product_${film.uuid}`}
+                                            key={`${film.uuid}`}
                                         >
                                             <Card>
                                                 <div className="position-relative">
