@@ -1,1 +1,1 @@
-frontend/{public,src}/{assets,components,constants,data,helpers,hooks,lang,layout,redux}/*.{js,jsx,css,scss,html} linguist-vendored
+frontend/src/{assets,components,constants,data,helpers,hooks,lang,layout,redux}/*.{js,jsx,css,scss,html} linguist-vendored
