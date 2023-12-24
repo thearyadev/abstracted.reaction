@@ -2,7 +2,7 @@ import React, {useContext} from 'react';
 import { Row } from 'reactstrap';
 import { Colxx, Separator } from '../../../components/common/CustomBootstrap';
 import Breadcrumb from '../../../containers/navs/Breadcrumb';
-import { ActressTable } from '../../../containers/ui/ReactTableCards';
+import { ActressBubbleTable } from '../../../containers/ui/ReactTableCards';
 import {ActressesContext} from "../../../providers/actressesProvider.jsx";
 
 const Actress_list = ({ match }) => {
@@ -17,7 +17,7 @@ const Actress_list = ({ match }) => {
           </Row>
           <Row>
             <Colxx xxs="12" className="mb-4">
-                <ActressTable data={actresses} />
+                <ActressBubbleTable data={actresses} />
             </Colxx>
           </Row>
         </>
